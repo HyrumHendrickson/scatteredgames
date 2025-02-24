@@ -1,5 +1,3 @@
-// platformer.js
-
 (function() {
     // Get the div where we want to insert the canvas
     const gameContainer = document.getElementById('GAMEHERE');
@@ -28,6 +26,14 @@
         isJumping: false,
     };
 
+    let levelTrigger = {
+        x: 0,
+        y: 0,
+        width: 40,
+        height: 40,
+        color: 'yellow'
+    };
+
     let platforms = [
         { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 }, // Ground
         { x: 200, y: 400, width: 200, height: 20 },
@@ -51,6 +57,11 @@
         });
     }
 
+    function drawLevelTrigger() {
+        ctx.fillStyle = levelTrigger.color;
+        ctx.fillRect(levelTrigger.x, levelTrigger.y, levelTrigger.width, levelTrigger.height);
+    }
+
     function handleKeyPress(event) {
         if (event.key === 'ArrowRight' || event.key === 'd') {
             player.dx = player.speed;
@@ -66,6 +77,13 @@
         if (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'd' || event.key === 'a') {
             player.dx = 0;
         }
+    }
+
+    function checkCollision(rect1, rect2) {
+        return rect1.x < rect2.x + rect2.width &&
+               rect1.x + rect1.width > rect2.x &&
+               rect1.y < rect2.y + rect2.height &&
+               rect1.y + rect1.height > rect2.y;
     }
 
     function update() {
@@ -94,8 +112,8 @@
             }
         });
 
-        // Check if player reaches the next level
-        if (player.x > canvas.width - 50) {
+        // Check for collision with level trigger
+        if (checkCollision(player, levelTrigger)) {
             level++;
             if (level > maxLevel) {
                 alert('You won the game!');
@@ -112,12 +130,20 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawPlatforms();
         drawPlayer();
+        drawLevelTrigger();
     }
 
     function resetLevel() {
         player.x = 50;
-        player.y = canvas.height - player.height;
+        player.y = canvas.height - player.height-100;
         platforms = generateLevel(level);
+        placeLevelTrigger();
+    }
+
+    function placeLevelTrigger() {
+        // Place the level trigger near the right side of the canvas
+        levelTrigger.x = canvas.width - levelTrigger.width - 50;
+        levelTrigger.y = 100; // Adjust this based on your level design
     }
 
     function generateLevel(level) {
@@ -129,7 +155,7 @@
         } else if (level === 2) {
             return [
                 { x: 0, y: canvas.height - 50, width: canvas.width, height: 50 },
-                { x: 100, y: 350, width: 300, height: 20 },
+                { x: 100, y: 400, width: 300, height: 20 },
                 { x: 500, y: 250, width: 200, height: 20 },
             ];
         } else if (level === 3) {
@@ -150,5 +176,7 @@
         requestAnimationFrame(gameLoop);
     }
 
+    // Initialize the first level trigger
+    placeLevelTrigger();
     gameLoop();
 })();
