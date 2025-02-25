@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Space Exploration Game</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: black; 
+            font-family: 'Courier New', monospace;
+            color: white;
+        }
+        canvas { 
+            display: block; 
+        }
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #0ff;
+            font-size: 14px;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
+        }
+        #fuel-bar {
+            width: 150px;
+            height: 15px;
+            border: 1px solid #0ff;
+            margin-top: 5px;
+        }
+        #fuel-level {
+            height: 100%;
+            background-color: #0ff;
+            width: 100%;
+            transition: width 0.3s;
+        }
+        #celestial-info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: #0ff;
+            font-size: 14px;
+            text-align: right;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
+            max-width: 300px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        #discovery-alert {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #0ff;
+            color: #0ff;
+            text-align: center;
+            display: none;
+        }
+        #mini-map {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 150px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #0ff;
+            border-radius: 5px;
+        }
+        #controls-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #0ff;
+            font-size: 14px;
+            text-align: right;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #refuel-button {
+            position: absolute;
+            bottom: 180px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #0ff;
+            border: 1px solid #0ff;
+            padding: 10px 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        #refuel-button:hover {
+            background-color: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        #refuel-button:active {
+            background-color: rgba(0, 255, 255, 0.4);
+        }
+        #station-distance {
+            position: absolute;
+            bottom: 230px;
+            left: 20px;
+            color: #0ff;
+            font-size: 14px;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="hud">
+        <div>COORDINATES: <span id="coordinates">0, 0</span></div>
+        <div>VELOCITY: <span id="velocity">0</span></div>
+        <div>FUEL: <span id="fuel">100</span>%</div>
+        <div id="fuel-bar"><div id="fuel-level"></div></div>
+        <div>DISCOVERIES: <span id="discoveries">0</span></div>
+    </div>
+    <div id="celestial-info"></div>
+    <div id="discovery-alert"></div>
+    <div id="mini-map"></div>
+    <div id="station-distance">NEAREST STATION: <span id="station-dist">N/A</span></div>
+    <button id="refuel-button">REFUEL</button>
+    <div id="controls-info">
+        <h3>CONTROLS</h3>
+        <div>↑: Thrust</div>
+        <div>←/→: Rotate</div>
+        <div>SPACE: Scan</div>
+        <div>M: Toggle Map</div>
+        <div>F: Refuel (at stations)</div>
+    </div>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const miniMapCanvas = document.createElement("canvas");
+        const miniMapCtx = miniMapCanvas.getContext("2d");
+        const refuelButton = document.getElementById("refuel-button");
+        const stationDistElement = document.getElementById("station-dist");
+        
+        miniMapCanvas.width = 150;
+        miniMapCanvas.height = 150;
+        document.getElementById("mini-map").appendChild(miniMapCanvas);
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Game state
+        const gameState = {
+            fuel: 100,
+            discoveries: 0,
+            showMap: true,
+            scanCooldown: 0,
+            discoveredObjects: new Set(),
+            nearestStation: null,
+            nearestStationDistance: Infinity
+        };
+        
+        const ship = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            angle: 0,
+            thrust: 0.1,
+            rotationSpeed: 0.05,
+            scanRange: 200,
+            scanActive: false,
+            scanRadius: 0
+        };
+        
+        const camera = {
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            zoom: 1
+        };
+        
+        const worldSize = 10000;
+        const universe = {
+            width: worldSize,
+            height: worldSize,
+            originX: -worldSize / 2,
+            originY: -worldSize / 2
+        };
+        
+        const keys = {};
+        
+        window.addEventListener("keydown", (e) => {
+            keys[e.code] = true;
+            
+            // Space key for scanning
+            if (e.code === "Space" && gameState.scanCooldown <= 0) {
+                ship.scanActive = true;
+                ship.scanRadius = 0;
+                gameState.scanCooldown = 100;
+            }
+            
+            // M key for map toggle
+            if (e.code === "KeyM") {
+                gameState.showMap = !gameState.showMap;
+            }
+            
+            // F key for refueling
+            if (e.code === "KeyF") {
+                tryRefuel();
+            }
+        });
+        
+        window.addEventListener("keyup", (e) => keys[e.code] = false);
+        
+        window.addEventListener("resize", () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Add refuel button click event
+        refuelButton.addEventListener("click", () => {
+            tryRefuel();
+        });
+        
+        function generateStars(count) {
+            const stars = [];
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: universe.originX + Math.random() * universe.width,
+                    y: universe.originY + Math.random() * universe.height,
+                    size: Math.random() * 2 + 1,
+                    color: `rgb(${200 + Math.random() * 55}, ${200 + Math.random() * 55}, ${200 + Math.random() * 55})`
+                });
+            }
+            return stars;
+        }
+        
+        function generateCelestialObjects() {
+            const objects = [];
+            
+            // Create planets
+            for (let i = 0; i < 15; i++) {
+                objects.push({
+                    type: "planet",
+                    x: universe.originX + Math.random() * universe.width,
+                    y: universe.originY + Math.random() * universe.height,
+                    radius: 50 + Math.random() * 100,
+                    color: `hsl(${Math.random() * 360}, ${50 + Math.random() * 50}%, ${30 + Math.random() * 30}%)`,
+                    name: generatePlanetName(),
+                    description: generatePlanetDescription(),
+                    discovered: false
+                });
+            }
+            
+            // Create refueling stations
+            for (let i = 0; i < 5; i++) {
+                objects.push({
+                    type: "station",
+                    x: universe.originX + Math.random() * universe.width,
+                    y: universe.originY + Math.random() * universe.height,
+                    radius: 25,
+                    color: "#0ff",
+                    name: `Station ${String.fromCharCode(65 + i)}`,
+                    description: "A refueling station. Press F when nearby to refuel your ship.",
+                    discovered: true // Make stations discovered by default
+                });
+            }
+            
+            // Create anomalies
+            for (let i = 0; i < 8; i++) {
+                objects.push({
+                    type: "anomaly",
+                    x: universe.originX + Math.random() * universe.width,
+                    y: universe.originY + Math.random() * universe.height,
+                    radius: 15 + Math.random() * 30,
+                    color: `rgba(${Math.random() * 100 + 155}, ${Math.random() * 100}, ${Math.random() * 255}, 0.8)`,
+                    name: "Unknown Anomaly",
+                    description: "Strange energy readings are coming from this area. Further investigation required.",
+                    discovered: false,
+                    pulseSize: 0,
+                    pulseMax: 20 + Math.random() * 30
+                });
+            }
+            
+            return objects;
+        }
+        
+        function generatePlanetName() {
+            const prefixes = ["Nexus", "Terra", "Nova", "Astro", "Lumi", "Orb", "Chrono", "Vex", "Zeta", "Quantum"];
+            const suffixes = ["Prime", "Major", "Minor", "Alpha", "Beta", "Proxima", "Nova", "X", "IX", "Zero"];
+            return `${prefixes[Math.floor(Math.random() * prefixes.length)]}-${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
+        }
+        
+        function generatePlanetDescription() {
+            const atmospheres = ["toxic", "breathable", "thin", "dense", "gaseous", "stormy"];
+            const terrains = ["rocky", "ice-covered", "desert", "oceanic", "volcanic", "jungle", "crystalline"];
+            const features = ["massive craters", "ancient ruins", "strange formations", "massive mountains", "deep ravines", "floating islands"];
+            const lifeforms = ["no signs of life", "primitive microbes", "plant-like organisms", "marine creatures", "insect-like beings", "dormant life signatures"];
+            
+            return `A ${terrains[Math.floor(Math.random() * terrains.length)]} planet with a ${atmospheres[Math.floor(Math.random() * atmospheres.length)]} atmosphere. 
+                    Surface scans reveal ${features[Math.floor(Math.random() * features.length)]}. 
+                    Bioscanners detect ${lifeforms[Math.floor(Math.random() * lifeforms.length)]}.`;
+        }
+        
+        const stars = generateStars(500);
+        const celestialObjects = generateCelestialObjects();
+        
+        function update() {
+            // Ship control
+            if (keys["ArrowLeft"]) ship.angle -= ship.rotationSpeed;
+            if (keys["ArrowRight"]) ship.angle += ship.rotationSpeed;
+            
+            if (keys["ArrowUp"] && gameState.fuel > 0) {
+                const thrustX = Math.cos(ship.angle) * ship.thrust;
+                const thrustY = Math.sin(ship.angle) * ship.thrust;
+                
+                camera.vx -= thrustX;
+                camera.vy -= thrustY;
+                
+                // Decrease fuel
+                gameState.fuel -= 0.1;
+                if (gameState.fuel < 0) gameState.fuel = 0;
+            }
+            
+            // Apply slight drag to slow ship naturally
+            camera.vx *= 1;
+            camera.vy *= 1;
+            
+            // Update camera position
+            camera.x += camera.vx;
+            camera.y += camera.vy;
+            
+            // Update scan
+            if (ship.scanActive) {
+                ship.scanRadius += 4;
+                if (ship.scanRadius > ship.scanRange) {
+                    ship.scanActive = false;
+                }
+                
+                // Check for discoveries
+                celestialObjects.forEach(obj => {
+                    if (!obj.discovered) {
+                        const dx = (obj.x - camera.x) - ship.x;
+                        const dy = (obj.y - camera.y) - ship.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < ship.scanRadius + obj.radius && 
+                            distance < ship.scanRange) {
+                            discoverObject(obj);
+                        }
+                    }
+                });
+            }
+            
+            // Update scan cooldown
+            if (gameState.scanCooldown > 0) {
+                gameState.scanCooldown--;
+            }
+            
+            // Update anomaly pulse effects
+            celestialObjects.forEach(obj => {
+                if (obj.type === "anomaly") {
+                    obj.pulseSize += 0.5;
+                    if (obj.pulseSize > obj.pulseMax) {
+                        obj.pulseSize = 0;
+                    }
+                }
+            });
+            
+            // Update HUD information
+            document.getElementById("coordinates").textContent = 
+                `${Math.floor(-camera.x)}, ${Math.floor(-camera.y)}`;
+            
+            const velocity = Math.sqrt(camera.vx * camera.vx + camera.vy * camera.vy);
+            document.getElementById("velocity").textContent = 
+                velocity.toFixed(2);
+            
+            document.getElementById("fuel").textContent = 
+                Math.floor(gameState.fuel);
+            document.getElementById("fuel-level").style.width = 
+                `${gameState.fuel}%`;
+            
+            document.getElementById("discoveries").textContent = 
+                gameState.discoveries;
+            
+            // Check for object proximity
+            checkObjectProximity();
+            
+            // Find nearest fuel station
+            findNearestFuelStation();
+        }
+        
+        function findNearestFuelStation() {
+            gameState.nearestStation = null;
+            gameState.nearestStationDistance = Infinity;
+            
+            celestialObjects.forEach(obj => {
+                if (obj.type === "station") {
+                    const dx = (obj.x - camera.x) - ship.x;
+                    const dy = (obj.y - camera.y) - ship.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < gameState.nearestStationDistance) {
+                        gameState.nearestStation = obj;
+                        gameState.nearestStationDistance = distance;
+                    }
+                }
+            });
+            
+            // Update the station distance display
+            if (gameState.nearestStation) {
+                stationDistElement.textContent = `${Math.floor(gameState.nearestStationDistance)} units`;
+            } else {
+                stationDistElement.textContent = "N/A";
+            }
+        }
+        
+        function discoverObject(obj) {
+            obj.discovered = true;
+            
+            if (!gameState.discoveredObjects.has(obj.name)) {
+                gameState.discoveries++;
+                gameState.discoveredObjects.add(obj.name);
+                
+                // Show discovery alert
+                const alertBox = document.getElementById("discovery-alert");
+                alertBox.innerHTML = `
+                    <h2>NEW DISCOVERY!</h2>
+                    <h3>${obj.name}</h3>
+                    <p>${obj.description}</p>
+                `;
+                alertBox.style.display = "block";
+                
+                setTimeout(() => {
+                    alertBox.style.display = "none";
+                }, 5000);
+            }
+        }
+        
+        function checkObjectProximity() {
+            let nearestObj = null;
+            let minDistance = Infinity;
+            
+            celestialObjects.forEach(obj => {
+                if (obj.discovered) {
+                    const dx = (obj.x - camera.x) - ship.x;
+                    const dy = (obj.y - camera.y) - ship.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 200 && distance < minDistance) {
+                        nearestObj = obj;
+                        minDistance = distance;
+                    }
+                }
+            });
+            
+            const infoBox = document.getElementById("celestial-info");
+            
+            if (nearestObj) {
+                infoBox.innerHTML = `
+                    <h3>${nearestObj.name}</h3>
+                    <p>${nearestObj.description}</p>
+                    <p>Distance: ${Math.floor(minDistance)} units</p>
+                `;
+                infoBox.style.display = "block";
+            } else {
+                infoBox.style.display = "none";
+            }
+        }
+        
+        function tryRefuel() {
+            celestialObjects.forEach(obj => {
+                if (obj.type === "station") {
+                    const dx = (obj.x - camera.x) - ship.x;
+                    const dy = (obj.y - camera.y) - ship.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 100) {
+                        gameState.fuel = 100;
+                        
+                        // Show refuel alert
+                        const alertBox = document.getElementById("discovery-alert");
+                        alertBox.innerHTML = `
+                            <h2>REFUELED!</h2>
+                            <p>Your ship's fuel tanks are now at 100%</p>
+                        `;
+                        alertBox.style.display = "block";
+                        
+                        setTimeout(() => {
+                            alertBox.style.display = "none";
+                        }, 2000);
+                    }
+                }
+            });
+        }
+        
+        function drawStars() {
+            ctx.fillStyle = "white";
+            for (const star of stars) {
+                // Use parallax effect for stars based on their size (larger stars move slower)
+                const parallaxFactor = 0.1 + (star.size / 3) * 0.1;
+                const x = star.x - camera.x * parallaxFactor;
+                const y = star.y - camera.y * parallaxFactor;
+                
+                // Wrap stars around the viewport for infinite scrolling effect
+                const wrappedX = ((x % canvas.width) + canvas.width) % canvas.width;
+                const wrappedY = ((y % canvas.height) + canvas.height) % canvas.height;
+                
+                ctx.fillStyle = star.color;
+                ctx.beginPath();
+                ctx.arc(wrappedX, wrappedY, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        function drawCelestialObjects() {
+            for (const obj of celestialObjects) {
+                const x = obj.x - camera.x;
+                const y = obj.y - camera.y;
+                
+                // Only draw objects that are close to the visible area
+                if (x > -obj.radius * 2 && x < canvas.width + obj.radius * 2 && 
+                    y > -obj.radius * 2 && y < canvas.height + obj.radius * 2) {
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, obj.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = obj.color;
+                    ctx.fill();
+                    
+                    if (obj.type === "planet") {
+                        // Add surface detail to planets
+                        ctx.save();
+                        ctx.clip();
+                        for (let i = 0; i < 10; i++) {
+                            ctx.beginPath();
+                            const detailX = x + (Math.random() * 2 - 1) * obj.radius * 0.8;
+                            const detailY = y + (Math.random() * 2 - 1) * obj.radius * 0.8;
+                            const detailSize = obj.radius * (0.2 + Math.random() * 0.3);
+                            ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2);
+                            ctx.fillStyle = `rgba(0, 0, 0, 0.2)`;
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    } else if (obj.type === "station") {
+                        // Draw station details
+                        ctx.fillStyle = "#000";
+                        ctx.beginPath();
+                        ctx.arc(x, y, obj.radius * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Draw extended arms
+                        ctx.lineWidth = 3;
+                        ctx.strokeStyle = obj.color;
+                        for (let i = 0; i < 4; i++) {
+                            const angle = i * Math.PI / 2;
+                            ctx.beginPath();
+                            ctx.moveTo(x + Math.cos(angle) * obj.radius * 0.6, 
+                                     y + Math.sin(angle) * obj.radius * 0.6);
+                            ctx.lineTo(x + Math.cos(angle) * obj.radius * 1.3, 
+                                     y + Math.sin(angle) * obj.radius * 1.3);
+                            ctx.stroke();
+                        }
+                    } else if (obj.type === "anomaly") {
+                        // Draw anomaly pulse effect
+                        ctx.strokeStyle = obj.color;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(x, y, obj.radius + obj.pulseSize, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        // Add glow effect
+                        const gradient = ctx.createRadialGradient(
+                            x, y, obj.radius * 0.5,
+                            x, y, obj.radius * 1.5
+                        );
+                        gradient.addColorStop(0, obj.color);
+                        gradient.addColorStop(1, "transparent");
+                        
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(x, y, obj.radius * 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // Draw name if discovered
+                    if (obj.discovered) {
+                        ctx.fillStyle = "#fff";
+                        ctx.font = "12px 'Courier New'";
+                        ctx.textAlign = "center";
+                        ctx.fillText(obj.name, x, y - obj.radius - 10);
+                    }
+                }
+            }
+        }
+        
+        function drawStationArrow() {
+    if (gameState.nearestStation) {
+        const dx = (gameState.nearestStation.x - camera.x) - ship.x;
+        const dy = (gameState.nearestStation.y - camera.y) - ship.y;
+
+        // Calculate angle to the nearest station
+        const angleToStation = Math.atan2(dy, dx);
+
+        // Arrow properties
+        const arrowLength = 40;
+        const arrowWidth = 15;
+
+        // Position slightly away from the ship for better visibility
+        const arrowStartX = ship.x + Math.cos(angleToStation) * 25;
+        const arrowStartY = ship.y + Math.sin(angleToStation) * 25;
+
+        // Drawing the arrow
+        ctx.save();
+        ctx.translate(arrowStartX, arrowStartY);
+        ctx.rotate(angleToStation);
+
+        // Glow effect
+        ctx.shadowColor = '#0ff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+
+        // Define the correct arrow shape
+        ctx.moveTo(0, 0);  // Start at the base
+        ctx.lineTo(arrowLength, 0); // Move to tip of arrow
+        ctx.lineTo(arrowLength - 10, -arrowWidth); // Right side of the arrowhead
+        ctx.moveTo(arrowLength, 0); // Back to tip
+        ctx.lineTo(arrowLength - 10, arrowWidth); // Left side of the arrowhead
+
+        ctx.closePath();
+
+        // Pulsating effect
+        const pulseRate = (Math.sin(Date.now() * 0.004) + 1) / 2;
+        const arrowColor = `rgba(0, ${200 + pulseRate * 55}, ${200 + pulseRate * 55}, ${0.6 + pulseRate * 0.4})`;
+
+        ctx.fillStyle = arrowColor;
+       // ctx.fill();
+
+        ctx.strokeStyle = "#0ff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+        
+        function drawShip() {
+            ctx.save();
+            ctx.translate(ship.x, ship.y);
+            ctx.rotate(ship.angle-3.1415926535);
+            
+            // Draw ship body (fixed orientation)
+            ctx.beginPath();
+            ctx.moveTo(15, 0);  // Front of ship (now correctly points forward)
+            ctx.lineTo(-10, -10);
+            ctx.lineTo(-5, 0);
+            ctx.lineTo(-10, 10);
+            ctx.closePath();
+            
+            ctx.fillStyle = "#0ff";
+            ctx.fill();
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw engine glow if thrusting
+            if (keys["ArrowUp"] && gameState.fuel > 0) {
+                ctx.beginPath();
+                ctx.moveTo(-5, 0);
+                ctx.lineTo(-15, -5);
+                ctx.lineTo(-20, 0);
+                ctx.lineTo(-15, 5);
+                ctx.closePath();
+                
+                const gradient = ctx.createLinearGradient(-5, 0, -20, 0);
+                gradient.addColorStop(0, "rgba(0, 255, 255, 0.7)");
+                gradient.addColorStop(1, "rgba(0, 100, 255, 0)");
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+            
+            ctx.restore();
+            
+            // Draw scanning effect
+            if (ship.scanActive) {
+                ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(ship.x, ship.y, ship.scanRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
+        function drawMiniMap() {
+    if (!gameState.showMap) return;
+    
+    miniMapCtx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    miniMapCtx.fillRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
+    
+    const mapCenterX = miniMapCanvas.width / 2;
+    const mapCenterY = miniMapCanvas.height / 2;
+    const mapScale = miniMapCanvas.width / universe.width * 5; // Show 20% of the universe
+    
+    // Draw ship position (always at center)
+    miniMapCtx.fillStyle = "white";
+    miniMapCtx.beginPath();
+    miniMapCtx.arc(mapCenterX, mapCenterY, 2, 0, Math.PI * 2);
+    miniMapCtx.fill();
+    
+    // Draw discovered objects relative to ship
+    celestialObjects.forEach(obj => {
+        if (obj.discovered) {
+            // Calculate object position relative to ship's actual world position
+            const relX = obj.x - (camera.x + ship.x);
+            const relY = obj.y - (camera.y + ship.y);
+            
+            // Scale and center on map
+            const mapX = mapCenterX + relX * mapScale;
+            const mapY = mapCenterY + relY * mapScale;
+            
+            // Only draw if within mini-map bounds
+            if (mapX >= 0 && mapX <= miniMapCanvas.width && 
+                mapY >= 0 && mapY <= miniMapCanvas.height) {
+                
+                let color;
+                let size;
+                
+                if (obj.type === "planet") {
+                    color = obj.color;
+                    size = 4;
+                } else if (obj.type === "station") {
+                    color = "#0ff";
+                    size = 3;
+                    
+                    // Make nearest station pulsate
+                    if (obj === gameState.nearestStation) {
+                        size = 4 + Math.sin(Date.now() * 0.01) * 1;
+                        
+                        // Draw a line from center to the station
+                        miniMapCtx.strokeStyle = "rgba(0, 255, 255, 0.7)";
+                        miniMapCtx.lineWidth = 1;
+                        miniMapCtx.beginPath();
+                        miniMapCtx.moveTo(mapCenterX, mapCenterY);
+                        miniMapCtx.lineTo(mapX, mapY);
+                        miniMapCtx.stroke();
+                    }
+                } else {
+                    color = "purple";
+                    size = 2;
+                }
+                
+                miniMapCtx.fillStyle = color;
+                miniMapCtx.beginPath();
+                miniMapCtx.arc(mapX, mapY, size, 0, Math.PI * 2);
+                miniMapCtx.fill();
+            }
+        }
+    });
+    
+    // Draw border
+    miniMapCtx.strokeStyle = "#0ff";
+    miniMapCtx.lineWidth = 1;
+    miniMapCtx.strokeRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
+}
+        
+        function loop() {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawStars();
+            drawCelestialObjects();
+            update();
+            drawStationArrow(); // Draw the arrow pointing to nearest station
+            drawShip();
+            drawMiniMap();
+            
+            requestAnimationFrame(loop);
+        }
+        
+        // Start the game
+        loop();
+
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robocode Battle Arena</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --border-radius: 4px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #1a1a2e;
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            color: var(--primary);
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        h1 {
+            font-size: 28px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .editor-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .editor-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .editor-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .template-btn {
+            padding: 5px 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .template-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .code-editor {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            height: 300px;
+            background-color: rgba(0, 0, 0, 0.3);
+            color: var(--light);
+            font-family: 'Courier New', Courier, monospace;
+            resize: none;
+            width: 100%;
+        }
+        
+        .code-editor:focus {
+            outline: 1px solid var(--primary);
+        }
+        
+        .game-section {
+            grid-column: 1 / -1;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .game-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+        
+        .game-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .start-btn {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .start-btn:hover {
+            background-color: #27ae60;
+        }
+        
+        .pause-btn {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .pause-btn:hover {
+            background-color: #e67e22;
+        }
+        
+        .restart-btn {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .restart-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .battle-arena {
+            height: 400px;
+            background-color: #16213e;
+            border-radius: var(--border-radius);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .robot {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s;
+        }
+        
+        .robot-1 {
+            background-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+        
+        .robot-2 {
+            background-color: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+        }
+        
+        .robot::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.8);
+            top: 50%;
+            left: 50%;
+            transform-origin: 0 0;
+        }
+        
+        .bullet {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: var(--warning);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px var(--warning);
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: var(--border-radius);
+        }
+        
+        .robot-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .stat-title {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .health-bar {
+            width: 200px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        .health-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        
+        .robot-1 .health-fill {
+            background-color: var(--primary);
+        }
+        
+        .robot-2 .health-fill {
+            background-color: var(--danger);
+        }
+        
+        .game-info {
+            text-align: center;
+        }
+        
+        .grid-marker {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .vertical-marker {
+            width: 1px;
+            height: 100%;
+        }
+        
+        .horizontal-marker {
+            width: 100%;
+            height: 1px;
+        }
+        
+        .winner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .winner-text {
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .robot-1-winner {
+            color: var(--primary);
+        }
+        
+        .robot-2-winner {
+            color: var(--danger);
+        }
+        
+        .explosion {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: var(--warning);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px var(--warning);
+            animation: explode 0.5s forwards;
+        }
+        
+        @keyframes explode {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(5);
+                opacity: 0;
+            }
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚔️</div>
+                <h1>Robocode Battle Arena</h1>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="editor-header">
+                    <div class="editor-title">Robot 1 (Blue)</div>
+                    <div class="editor-controls">
+                        <button class="template-btn" onclick="loadTemplate(1, 'basic')">Basic</button>
+                        <button class="template-btn" onclick="loadTemplate(1, 'defensive')">Defensive</button>
+                        <button class="template-btn" onclick="loadTemplate(1, 'aggressive')">Aggressive</button>
+                    </div>
+                </div>
+                <textarea id="code-editor-1" class="code-editor" spellcheck="false"></textarea>
+            </div>
+            
+            <div class="editor-section">
+                <div class="editor-header">
+                    <div class="editor-title">Robot 2 (Red)</div>
+                    <div class="editor-controls">
+                        <button class="template-btn" onclick="loadTemplate(2, 'basic')">Basic</button>
+                        <button class="template-btn" onclick="loadTemplate(2, 'defensive')">Defensive</button>
+                        <button class="template-btn" onclick="loadTemplate(2, 'aggressive')">Aggressive</button>
+                    </div>
+                </div>
+                <textarea id="code-editor-2" class="code-editor" spellcheck="false"></textarea>
+            </div>
+            
+            <div class="game-section">
+                <div class="game-header">
+                    <div class="game-title">Battle Arena</div>
+                    <div class="game-controls">
+                        <button id="start-btn" class="control-btn start-btn">Start Battle</button>
+                        <button id="pause-btn" class="control-btn pause-btn" disabled>Pause</button>
+                        <button id="restart-btn" class="control-btn restart-btn">Restart</button>
+                    </div>
+                </div>
+                
+                <div class="battle-arena" id="arena">
+                    <div id="robot-1" class="robot robot-1"></div>
+                    <div id="robot-2" class="robot robot-2"></div>
+                    <div id="winner-overlay" class="winner-overlay">
+                        <div id="winner-text" class="winner-text">Robot 1 Wins!</div>
+                        <button class="control-btn restart-btn">Play Again</button>
+                    </div>
+                </div>
+                
+                <div class="stats-bar">
+                    <div class="robot-stats robot-1">
+                        <div class="stat-title">Robot 1 Health</div>
+                        <div class="health-bar">
+                            <div id="health-1" class="health-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="game-info" id="game-info">
+                        Ready for battle
+                    </div>
+                    
+                    <div class="robot-stats robot-2">
+                        <div class="stat-title">Robot 2 Health</div>
+                        <div class="health-bar">
+                            <div id="health-2" class="health-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            &copy; 2025 Robocode Battle Arena | Program your robots and watch them battle!
+        </footer>
+    </div>
+    
+    
+    <script>
+        // Game configuration
+        const config = {
+            arenaWidth: 0,
+            arenaHeight: 0,
+            maxHealth: 100,
+            bulletDamage: 10,
+            bulletSpeed: 5,
+            collisionDamage: 5,
+            tickRate: 60,
+            running: false
+        };
+        
+        // Game state
+        let gameState = {
+            robots: [
+                {
+                    x: 0,
+                    y: 0,
+                    angle: 0,
+                    health: config.maxHealth,
+                    cooldown: 0,
+                    element: null,
+                    code: null,
+                    scan: null
+                },
+                {
+                    x: 0,
+                    y: 0,
+                    angle: 0,
+                    health: config.maxHealth,
+                    cooldown: 0,
+                    element: null,
+                    code: null,
+                    scan: null
+                }
+            ],
+            bullets: [],
+            gameInterval: null,
+            gameOver: false,
+            paused: false,
+            tickCount: 0
+        };
+        
+        // Templates
+        const templates = {
+            basic: `// BASIC ROBOT - Balanced approach with improved targeting
+function update(state, enemy) {
+  // No enemy visible - search pattern
+  if (!enemy) {
+    // Spiral outward pattern
+    const angle = Math.sin(state.tickCount / 20) * 3;
+    rotate(angle);
+    move(1, 0);
+    return;
+  }
+  
+  // Enemy spotted - engage with basic tactics
+  
+  // Maintain optimal distance (not too close, not too far)
+  const optimalDistance = 200;
+  if (enemy.distance > optimalDistance + 50) {
+    // Too far - move closer
+    if (Math.abs(enemy.angle) < 45) {
+      move(1.5, 0);
+    } else {
+      // Turn to face enemy first
+      rotate(enemy.angle > 0 ? 3 : -3);
+    }
+  } else if (enemy.distance < optimalDistance - 50) {
+    // Too close - back up
+    move(-1, 0);
+  } else {
+    // At good distance - strafe to make yourself harder to hit
+    // Strafe perpendicular to enemy
+    move(0, Math.sin(state.tickCount / 10) * 1.5);
+  }
+  
+  // Aim and fire - improved prediction based on angle
+  if (Math.abs(enemy.angle) < 10) {
+    fire();
+  } else {
+    // Turn to face enemy
+    rotate(enemy.angle > 0 ? 2 : -2);
+  }
+}`,
+            defensive: `// DEFENSIVE ROBOT - Survival focused with counter-attacks
+function update(state, enemy) {
+  // Constants
+  const safeMargin = 80; // Stay this far from walls
+  const optimalDistance = 250; // Preferred distance from enemy
+  
+  // Wall avoidance has high priority
+  const tooCloseToWall = 
+    state.x < safeMargin || 
+    state.x > state.arenaWidth - safeMargin ||
+    state.y < safeMargin || 
+    state.y > state.arenaHeight - safeMargin;
+  
+  if (tooCloseToWall) {
+    // Move toward arena center
+    const centerX = state.arenaWidth / 2;
+    const centerY = state.arenaHeight / 2;
+    const angleToCenter = Math.atan2(centerY - state.y, centerX - state.x) * (180 / Math.PI);
+    const relativeTurnAngle = (angleToCenter - state.angle + 360) % 360;
+    const turnDirection = relativeTurnAngle > 180 ? -1 : 1;
+    
+    rotate(3 * turnDirection);
+    move(1.5, 0);
+    return;
+  }
+  
+  // No enemy visible - patrol in a defensive pattern
+  if (!enemy) {
+    // Circular patrol pattern around arena center
+    const patrolRadius = Math.min(state.arenaWidth, state.arenaHeight) * 0.3;
+    const centerX = state.arenaWidth / 2;
+    const centerY = state.arenaHeight / 2;
+    
+    // Calculate current position relative to center
+    const dx = state.x - centerX;
+    const dy = state.y - centerY;
+    const distanceFromCenter = Math.sqrt(dx*dx + dy*dy);
+    
+    if (distanceFromCenter < patrolRadius - 20 || distanceFromCenter > patrolRadius + 20) {
+      // Move to patrol perimeter
+      const angleToCenter = Math.atan2(dy, dx) * (180 / Math.PI);
+      const desiredAngle = (angleToCenter + 90) % 360; // Perpendicular to radius for circular motion
+      const turnAmount = ((desiredAngle - state.angle + 360) % 360);
+      
+      if (turnAmount > 180) {
+        rotate(-3);
+      } else {
+        rotate(3);
+      }
+    }
+    
+    move(1, 0);
+    return;
+  }
+  
+  // Enemy spotted - defensive tactics
+  
+  // If enemy is too close, back away while facing them
+  if (enemy.distance < optimalDistance - 50) {
+    if (Math.abs(enemy.angle) < 90) {
+      // Enemy in front - back up directly
+      move(-1.5, 0);
+    } else {
+      // Enemy behind - turn to face while backing up at an angle
+      rotate(enemy.angle > 0 ? 4 : -4);
+      move(-0.5, enemy.angle > 0 ? -1 : 1);
+    }
+  } else {
+    // At good distance or far - strafe in evasive pattern
+    // Use sine wave strafing with occasional direction changes
+    const strafeDir = Math.sin(state.tickCount / 15) * 1.5;
+    move(0.3, strafeDir);
+  }
+  
+  // Only fire when well-aligned and at reasonable distance
+  if (Math.abs(enemy.angle) < 8 && enemy.distance < 300) {
+    fire();
+  } else {
+    // Turn to face enemy for counter fire
+    const turnRate = Math.min(5, Math.abs(enemy.angle) / 10); // Faster turn for bigger angles
+    rotate(enemy.angle > 0 ? turnRate : -turnRate);
+  }
+}
+      `,
+            aggressive: `// AGGRESSIVE ROBOT - Active hunter with advanced targeting
+function update(state, enemy) {
+  // No enemy visible - wide search pattern to find target quickly
+  if (!enemy) {
+    // Aggressive search - fast movement with wide sweeping turns
+    if (state.tickCount % 30 < 15) {
+      move(2, 0); // Move fast forward
+    } else {
+      // Quick rotation to scan
+      rotate(10);
+    }
+    
+    // Avoid walls during search
+    const margin = 50;
+    if (state.x < margin || state.x > state.arenaWidth - margin ||
+        state.y < margin || state.y > state.arenaHeight - margin) {
+      // Turn toward center
+      const angleToCenter = Math.atan2(
+        state.arenaHeight/2 - state.y, 
+        state.arenaWidth/2 - state.x
+      ) * (180 / Math.PI);
+      
+      const relativeAngle = (angleToCenter - state.angle + 360) % 360;
+      rotate(relativeAngle > 180 ? -8 : 8);
+    }
+    
+    return;
+  }
+  
+  // Enemy spotted - aggressive engagement
+  
+  // Predictive targeting - aim ahead of enemy based on distance
+  // This simulates predicting where enemy will be when bullet arrives
+  let targetingAdjustment = 0;
+  if (enemy.distance > 100) {
+    // Approximate enemy movement prediction
+    // This is a simplified version - a real prediction would use enemy velocity
+    targetingAdjustment = (enemy.angle > 0) ? -8 : 8;
+  }
+  
+  // Aggressive circling behavior to get good firing angles
+  // Direction depends on which side of enemy we're on
+  const circlingSide = (enemy.angle > 0) ? -1 : 1;
+  
+  // Different tactics based on distance
+  if (enemy.distance > 250) {
+    // Far away - close in quickly while turning to face
+    if (Math.abs(enemy.angle) > 30) {
+      // Need to turn substantially - slow down and turn quickly
+      rotate(enemy.angle > 0 ? 6 : -6);
+      move(1, 0);
+    } else {
+      // Generally facing enemy - charge while adjusting aim
+      rotate(enemy.angle > 0 ? 3 : -3);
+      move(2, 0);
+    }
+  } else if (enemy.distance < 100) {
+    // Too close - back up slightly while strafing to maintain firing position
+    rotate(enemy.angle > 0 ? 4 : -4);
+    move(-0.5, circlingSide);
+  } else {
+    // Optimal range - circle strafe to confuse enemy targeting
+    rotate(enemy.angle > 0 ? 3 : -3);
+    move(0.5, circlingSide);
+  }
+  
+  // Fire aggressively when generally pointed at enemy
+  // Use targeting adjustment for prediction
+  if (Math.abs(enemy.angle + targetingAdjustment) < 15) {
+    fire();
+  }
+}
+        `
+        };
+        
+        // DOM elements
+        const arena = document.getElementById('arena');
+        const robot1El = document.getElementById('robot-1');
+        const robot2El = document.getElementById('robot-2');
+        const health1El = document.getElementById('health-1');
+        const health2El = document.getElementById('health-2');
+        const editor1 = document.getElementById('code-editor-1');
+        const editor2 = document.getElementById('code-editor-2');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const gameInfoEl = document.getElementById('game-info');
+        const winnerOverlay = document.getElementById('winner-overlay');
+        const winnerText = document.getElementById('winner-text');
+        
+        function loadTemplate(robotIndex, templateName) {
+            const editor = robotIndex === 1 ? editor1 : editor2;
+            editor.value = templates[templateName];
+        }
+    
+        function initGame() {
+    // Set arena dimensions
+    config.arenaWidth = arena.clientWidth;
+    config.arenaHeight = arena.clientHeight;
+    
+    // Create grid markers
+    createGridMarkers();
+    
+    // Initialize robots
+    gameState.robots[0].x = config.arenaWidth * 0.25;
+    gameState.robots[0].y = config.arenaHeight * 0.5;
+    gameState.robots[0].angle = 0;
+    gameState.robots[0].health = config.maxHealth;
+    gameState.robots[0].element = robot1El;
+    
+    gameState.robots[1].x = config.arenaWidth * 0.75;
+    gameState.robots[1].y = config.arenaHeight * 0.5;
+    gameState.robots[1].angle = 180;
+    gameState.robots[1].health = config.maxHealth;
+    gameState.robots[1].element = robot2El;
+    
+    // Update robot positions
+    updateRobotElements();
+    
+    // Reset health bars
+    health1El.style.width = '100%';
+    health2El.style.width = '100%';
+    
+    // Reset game info
+    gameInfoEl.textContent = 'Ready for battle';
+    
+    // Reset game state
+    gameState.bullets = [];
+    gameState.gameOver = false;
+    gameState.paused = false;
+    gameState.tickCount = 0;
+    
+    // Hide winner overlay
+    winnerOverlay.style.opacity = '0';
+    winnerOverlay.style.pointerEvents = 'none';
+    
+    // Only load default templates if editors are empty
+    if (!editor1.value.trim()) {
+        loadTemplate(1, 'basic');
+    }
+    if (!editor2.value.trim()) {
+        loadTemplate(2, 'aggressive');
+    }
+}
+        
+        // Create grid markers for the arena
+        function createGridMarkers() {
+            // Remove existing markers
+            document.querySelectorAll('.grid-marker').forEach(marker => marker.remove());
+            
+            // Create vertical lines
+            for (let x = 50; x < config.arenaWidth; x += 50) {
+                const marker = document.createElement('div');
+                marker.className = 'grid-marker vertical-marker';
+                marker.style.left = `${x}px`;
+                arena.appendChild(marker);
+            }
+            
+            // Create horizontal lines
+            for (let y = 50; y < config.arenaHeight; y += 50) {
+                const marker = document.createElement('div');
+                marker.className = 'grid-marker horizontal-marker';
+                marker.style.top = `${y}px`;
+                arena.appendChild(marker);
+            }
+        }
+        
+        // Update robot elements position and rotation
+        function updateRobotElements() {
+            gameState.robots.forEach((robot, index) => {
+                if (robot.element) {
+                    robot.element.style.left = `${robot.x}px`;
+                    robot.element.style.top = `${robot.y}px`;
+                    robot.element.style.setProperty('--angle', `${robot.angle}deg`);
+                    // Fix for the after pseudo-element
+                    // We can't directly access pseudo-elements in JS, so this won't work
+                    // Instead, we'll use CSS variables to control the rotation
+                }
+            });
+        }
+        
+        // Start the game
+function startGame() {
+    if (gameState.gameOver) {
+        // Reset the game state but don't touch editor content
+        resetGameWithoutReloadingCode();
+    }
+    
+    if (gameState.paused) {
+        resumeGame();
+        return;
+    }
+    
+    // Compile robot code
+    try {
+        compileRobotCode();
+        
+        config.running = true;
+        gameState.paused = false;
+        
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+        
+        gameInfoEl.textContent = 'Battle in progress...';
+        
+        // Start game loop
+        gameState.gameInterval = setInterval(gameLoop, 1000 / config.tickRate);
+    } catch (error) {
+        gameInfoEl.textContent = `Error: ${error.message}`;
+    }
+}
+
+// Reset game without reloading code templates
+function resetGameWithoutReloadingCode() {
+    clearInterval(gameState.gameInterval);
+    config.running = false;
+    
+    // Remove all bullets
+    document.querySelectorAll('.bullet').forEach(bullet => bullet.remove());
+    
+    // Reset game state without touching editor content
+    // Set arena dimensions
+    config.arenaWidth = arena.clientWidth;
+    config.arenaHeight = arena.clientHeight;
+    
+    // Create grid markers
+    createGridMarkers();
+    
+    // Initialize robots
+    gameState.robots[0].x = config.arenaWidth * 0.25;
+    gameState.robots[0].y = config.arenaHeight * 0.5;
+    gameState.robots[0].angle = 0;
+    gameState.robots[0].health = config.maxHealth;
+    gameState.robots[0].element = robot1El;
+    
+    gameState.robots[1].x = config.arenaWidth * 0.75;
+    gameState.robots[1].y = config.arenaHeight * 0.5;
+    gameState.robots[1].angle = 180;
+    gameState.robots[1].health = config.maxHealth;
+    gameState.robots[1].element = robot2El;
+    
+    // Update robot positions
+    updateRobotElements();
+    
+    // Reset health bars
+    health1El.style.width = '100%';
+    health2El.style.width = '100%';
+    
+    // Reset game info
+    gameInfoEl.textContent = 'Ready for battle';
+    
+    // Reset game state
+    gameState.bullets = [];
+    gameState.gameOver = false;
+    gameState.paused = false;
+    gameState.tickCount = 0;
+    
+    // Hide winner overlay
+    winnerOverlay.style.opacity = '0';
+    winnerOverlay.style.pointerEvents = 'none';
+    
+    // Reset buttons
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = 'Pause';
+}
+        
+        // Compile robot code from editors
+        function compileRobotCode() {
+            // Robot 1
+            try {
+                const code1 = editor1.value;
+                // Extract the update function from the code without executing it yet
+                const updateFunc1 = new Function('state', 'enemy', 'move', 'rotate', 'fire', code1 + '\nreturn update;');
+                // Store the function itself, not its result
+                gameState.robots[0].code = updateFunc1;
+            } catch (error) {
+                throw new Error(`Robot 1 code error: ${error.message}`);
+            }
+            
+            // Robot 2
+            try {
+                const code2 = editor2.value;
+                // Extract the update function from the code without executing it yet
+                const updateFunc2 = new Function('state', 'enemy', 'move', 'rotate', 'fire', code2 + '\nreturn update;');
+                // Store the function itself, not its result
+                gameState.robots[1].code = updateFunc2;
+            } catch (error) {
+                throw new Error(`Robot 2 code error: ${error.message}`);
+            }
+        }
+        
+        // Pause the game
+        function pauseGame() {
+            if (config.running && !gameState.paused) {
+                clearInterval(gameState.gameInterval);
+                gameState.paused = true;
+                pauseBtn.textContent = 'Resume';
+                gameInfoEl.textContent = 'Battle paused';
+            } else {
+                resumeGame();
+            }
+        }
+        
+        // Resume the game
+        function resumeGame() {
+            if (config.running && gameState.paused) {
+                gameState.gameInterval = setInterval(gameLoop, 1000 / config.tickRate);
+                gameState.paused = false;
+                pauseBtn.textContent = 'Pause';
+                gameInfoEl.textContent = 'Battle in progress...';
+            }
+        }
+        
+        function resetGame() {
+    // Just call our function that doesn't reload default templates
+    resetGameWithoutReloadingCode();
+}
+        
+        // Main game loop
+        function gameLoop() {
+            gameState.tickCount++;
+            
+            // Update robots
+            updateRobots();
+            
+            // Update bullets
+            updateBullets();
+            
+            // Check for collisions
+            checkCollisions();
+            
+            // Check for game over
+            checkGameOver();
+        }
+        
+        // Update robots based on their code
+        function updateRobots() {
+            gameState.robots.forEach((robot, index) => {
+                if (robot.health <= 0) return;
+                
+                // Decrease cooldown
+                if (robot.cooldown > 0) {
+                    robot.cooldown--;
+                }
+                
+                // Get enemy position relative to this robot
+                const enemyIndex = index === 0 ? 1 : 0;
+                const enemy = gameState.robots[enemyIndex];
+                let enemyInfo = null;
+                
+                if (enemy.health > 0) {
+                    // Calculate distance and angle to enemy
+                    const dx = enemy.x - robot.x;
+                    const dy = enemy.y - robot.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Calculate angle to enemy (relative to robot's current angle)
+                    let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                    angle = (angle - robot.angle + 360) % 360;
+                    if (angle > 180) angle -= 360;
+                    
+                    enemyInfo = {
+                        distance,
+                        angle,
+                        x: enemy.x,
+                        y: enemy.y,
+                        health: enemy.health
+                    };
+                }
+                
+                // Create state object to pass to robot's code
+                const state = {
+                    x: robot.x,
+                    y: robot.y,
+                    angle: robot.angle,
+                    health: robot.health,
+                    arenaWidth: config.arenaWidth,
+                    arenaHeight: config.arenaHeight,
+                    tickCount: gameState.tickCount
+                };
+                
+                // Define robot actions
+                const move = (forward, strafe) => {
+                    // Convert angle to radians
+                    const radians = robot.angle * (Math.PI / 180);
+                    
+                    // Calculate direction vectors
+                    const forwardX = Math.cos(radians);
+                    const forwardY = Math.sin(radians);
+                    
+                    // Calculate strafe vectors (perpendicular to forward)
+                    const strafeX = -forwardY;
+                    const strafeY = forwardX;
+                    
+                    // Calculate new position
+                    let newX = robot.x + (forwardX * forward) + (strafeX * strafe);
+                    let newY = robot.y + (forwardY * forward) + (strafeY * strafe);
+                    
+                    // Keep robot in bounds
+                    newX = Math.max(15, Math.min(config.arenaWidth - 15, newX));
+                    newY = Math.max(15, Math.min(config.arenaHeight - 15, newY));
+                    
+                    // Update position
+                    robot.x = newX;
+                    robot.y = newY;
+                };
+                
+                const rotate = (degrees) => {
+                    robot.angle = (robot.angle + degrees) % 360;
+                    if (robot.angle < 0) robot.angle += 360;
+                };
+                
+                const fire = () => {
+                    if (robot.cooldown === 0) {
+                        // Create bullet
+                        const radians = robot.angle * (Math.PI / 180);
+                        const bulletX = robot.x + Math.cos(radians) * 20;
+                        const bulletY = robot.y + Math.sin(radians) * 20;
+                        
+                        const bullet = {
+                            x: bulletX,
+                            y: bulletY,
+                            vx: Math.cos(radians) * config.bulletSpeed,
+                            vy: Math.sin(radians) * config.bulletSpeed,
+                            owner: index,
+                            element: null
+                        };
+                        
+                        // Create bullet element
+                        const bulletEl = document.createElement('div');
+                        bulletEl.className = 'bullet';
+                        bulletEl.style.left = `${bulletX}px`;
+                        bulletEl.style.top = `${bulletY}px`;
+                        arena.appendChild(bulletEl);
+                        
+                        bullet.element = bulletEl;
+                        gameState.bullets.push(bullet);
+                        
+                        // Set cooldown
+                        robot.cooldown = 20;
+                    }
+                };
+                
+                // Execute robot code
+                if (robot.code) {
+                    try {
+                        // Get the update function by executing the stored function with the required parameters
+                        const updateFunction = robot.code(state, enemyInfo, move, rotate, fire);
+                        // Then call the update function with the state and enemy info
+                        updateFunction(state, enemyInfo);
+                    } catch (error) {
+                        console.error(`Robot ${index + 1} runtime error:`, error);
+                    }
+                }
+            });
+            
+            // Update robot elements
+            gameState.robots.forEach(robot => {
+                if (robot.element) {
+                    robot.element.style.left = `${robot.x}px`;
+                    robot.element.style.top = `${robot.y}px`;
+                    
+                    // Update cannon direction using CSS variable
+                    robot.element.style.setProperty('--angle', `${robot.angle}deg`);
+                }
+            });
+        }
+        
+        // Update bullets
+        function updateBullets() {
+            for (let i = gameState.bullets.length - 1; i >= 0; i--) {
+                const bullet = gameState.bullets[i];
+                
+                // Update position
+                bullet.x += bullet.vx;
+                bullet.y += bullet.vy;
+                
+                // Check if bullet is out of bounds
+                if (bullet.x < 0 || bullet.x > config.arenaWidth || 
+                    bullet.y < 0 || bullet.y > config.arenaHeight) {
+                    // Remove bullet
+                    if (bullet.element) {
+                        bullet.element.remove();
+                    }
+                    gameState.bullets.splice(i, 1);
+                    continue;
+                }
+                
+                // Update bullet element
+                if (bullet.element) {
+                    bullet.element.style.left = `${bullet.x}px`;
+                    bullet.element.style.top = `${bullet.y}px`;
+                }
+            }
+        }
+        
+        // Check for collisions
+        function checkCollisions() {
+            // Check robot-robot collisions
+            const robot1 = gameState.robots[0];
+            const robot2 = gameState.robots[1];
+            
+            if (robot1.health > 0 && robot2.health > 0) {
+                const dx = robot2.x - robot1.x;
+                const dy = robot2.y - robot1.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 30) {
+                    // Robots are colliding, push them apart
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = 30 - distance;
+                    
+                    // Move robots apart
+                    robot1.x -= Math.cos(angle) * overlap / 2;
+                    robot1.y -= Math.sin(angle) * overlap / 2;
+                    robot2.x += Math.cos(angle) * overlap / 2;
+                    robot2.y += Math.sin(angle) * overlap / 2;
+                    
+                    // Keep robots in bounds
+                    robot1.x = Math.max(15, Math.min(config.arenaWidth - 15, robot1.x));
+                    robot1.y = Math.max(15, Math.min(config.arenaHeight - 15, robot1.y));
+                    robot2.x = Math.max(15, Math.min(config.arenaWidth - 15, robot2.x));
+                    robot2.y = Math.max(15, Math.min(config.arenaHeight - 15, robot2.y));
+                    
+                    // Deal collision damage
+                    robot1.health -= config.collisionDamage;
+                    robot2.health -= config.collisionDamage;
+                    
+                    // Update health bars
+                    health1El.style.width = `${Math.max(0, robot1.health / config.maxHealth * 100)}%`;
+                    health2El.style.width = `${Math.max(0, robot2.health / config.maxHealth * 100)}%`;
+                }
+            }
+            
+            // Check bullet-robot collisions
+            for (let i = gameState.bullets.length - 1; i >= 0; i--) {
+                const bullet = gameState.bullets[i];
+                
+                // Check collision with each robot
+                gameState.robots.forEach((robot, robotIndex) => {
+                    if (robot.health <= 0 || bullet.owner === robotIndex) return;
+                    
+                    const dx = bullet.x - robot.x;
+                    const dy = bullet.y - robot.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 15) {
+                        // Bullet hit robot
+                        robot.health -= config.bulletDamage;
+                        
+                        // Update health bar
+                        const healthEl = robotIndex === 0 ? health1El : health2El;
+                        healthEl.style.width = `${Math.max(0, robot.health / config.maxHealth * 100)}%`;
+                        
+                        // Create explosion effect
+                        createExplosion(bullet.x, bullet.y);
+                        
+                        // Remove bullet
+                        if (bullet.element) {
+                            bullet.element.remove();
+                        }
+                        gameState.bullets.splice(i, 1);
+                    }
+                });
+            }
+        }
+        
+        // Create explosion effect
+        function createExplosion(x, y) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = `${x}px`;
+            explosion.style.top = `${y}px`;
+            arena.appendChild(explosion);
+            
+            // Remove explosion after animation
+            setTimeout(() => {
+                explosion.remove();
+            }, 500);
+        }
+        
+        // Check for game over
+        function checkGameOver() {
+            const robot1 = gameState.robots[0];
+            const robot2 = gameState.robots[1];
+            
+            if (robot1.health <= 0 || robot2.health <= 0) {
+                gameState.gameOver = true;
+                clearInterval(gameState.gameInterval);
+                config.running = false;
+                
+                // Reset buttons
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                
+                // Show winner
+                if (robot1.health <= 0 && robot2.health <= 0) {
+                    // Draw
+                    gameInfoEl.textContent = 'Battle ended in a draw!';
+                    winnerText.textContent = 'Draw!';
+                    winnerText.className = 'winner-text';
+                } else if (robot1.health <= 0) {
+                    // Robot 2 wins
+                    gameInfoEl.textContent = 'Robot 2 wins!';
+                    winnerText.textContent = 'Robot 2 Wins!';
+                    winnerText.className = 'winner-text robot-2-winner';
+                    createExplosion(robot1.x, robot1.y);
+                } else {
+                    // Robot 1 wins
+                    gameInfoEl.textContent = 'Robot 1 wins!';
+                    winnerText.textContent = 'Robot 1 Wins!';
+                    winnerText.className = 'winner-text robot-1-winner';
+                    createExplosion(robot2.x, robot2.y);
+                }
+                
+                // Show winner overlay
+                setTimeout(() => {
+                    winnerOverlay.style.opacity = '1';
+                    winnerOverlay.style.pointerEvents = 'auto';
+                }, 1000);
+            }
+        }
+        
+        function setupTemplateButtons() {
+    document.querySelectorAll('.template-btn').forEach(button => {
+        button.removeAttribute('onclick');
+    });
+    
+    // Add specific event listeners for each button
+    document.querySelectorAll('.editor-controls button').forEach(button => {
+        const buttonText = button.textContent.toLowerCase();
+        const robotId = button.closest('.editor-section').querySelector('.editor-title').textContent.includes('1') ? 1 : 2;
+        
+        button.addEventListener('click', () => {
+            loadTemplate(robotId, buttonText);
+        });
+    });
+    
+    // Fix the Play Again button in the winner overlay
+    const playAgainBtn = document.querySelector('#winner-overlay .restart-btn');
+    if (playAgainBtn) {
+        playAgainBtn.removeAttribute('onclick');
+        playAgainBtn.addEventListener('click', resetGameWithoutReloadingCode);
+    }
+}
+        
+        // Event listeners
+        startBtn.addEventListener('click', startGame);
+        pauseBtn.addEventListener('click', pauseGame);
+        restartBtn.addEventListener('click', resetGame);
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            config.arenaWidth = arena.clientWidth;
+            config.arenaHeight = arena.clientHeight;
+            createGridMarkers();
+            updateRobotElements();
+        });
+        
+        // Initialize the game on load
+        window.addEventListener('load', () => {
+            initGame();
+            setupTemplateButtons();
+        });
+    </script>
+
+
+</body>
+</html>
