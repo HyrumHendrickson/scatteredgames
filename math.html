@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Battle Game</title>
+    <style>
+
+        .box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+
+
+            
+            max-width: 1000px;
+    
+            margin-top: 100px;
+            margin-bottom: 300px;
+
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+        .health-bars {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .health-bar {
+            width: 45%;
+            border: 2px solid #333;
+            height: 36px;
+            border-radius: 18px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .health-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.5s;
+        }
+        .health-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 8px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        .action-points {
+            font-size: 1.3em;
+            margin-bottom: 16px;
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+            background-color: #ecf0f1;
+            padding: 8px;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+        }
+        .battle-area {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 24px;
+            gap: 24px;
+        }
+        .player-area, .computer-area {
+            flex: 1;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .computer-area {
+            background-color: #f1f1f1;
+            border-left: 4px solid #e74c3c;
+        }
+        .player-area {
+            border-right: 4px solid #3498db;
+        }
+        .numbers-container {
+            min-height: 70px;
+            border: 2px dashed #ccc;
+            padding: 16px;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+            background-color: white;
+        }
+        .number {
+            display: inline-flex;
+            width: 50px;
+            height: 50px;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 1.2em;
+            background-color: #3498db;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+        .number.negative {
+            background-color: #e74c3c;
+        }
+        .number.selected {
+            background-color: #9b59b6;
+            transform: scale(1.1);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+        }
+        .number.computer-number {
+            background-color: #e67e22;
+            cursor: default;
+        }
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .action-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #3498db;
+            border: none;
+            color: white;
+            padding: 12px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+        }
+        .action-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 8px rgba(0, 0, 0, 0.15);
+        }
+        .action-button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.7;
+        }
+        .button-icon {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        .button-text {
+            font-size: 0.9em;
+        }
+        .button-cost {
+            font-size: 0.8em;
+            margin-top: 3px;
+            opacity: 0.8;
+        }
+        .end-turn-button {
+            grid-column: span 3;
+            background-color: #2ecc71;
+            border: none;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+        .end-turn-button:hover {
+            background-color: #27ae60;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .end-turn-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.7;
+        }
+        .turn-indicator {
+            font-size: 1.6em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #2c3e50;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .game-log {
+            margin-top: 24px;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 16px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        .log-entry {
+            margin: 8px 0;
+            font-size: 0.95em;
+            line-height: 1.4;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .log-entry.player {
+            color: #3498db;
+        }
+        .log-entry.computer {
+            color: #e74c3c;
+        }
+        .game-over {
+            font-size: 2.5em;
+            font-weight: bold;
+            text-align: center;
+            margin: 30px 0;
+            color: #e74c3c;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .thinking {
+            display: inline-block;
+            margin-left: 5px;
+            animation: thinking 1.5s infinite;
+        }
+        @keyframes thinking {
+            0% { content: "."; }
+            33% { content: ".."; }
+            66% { content: "..."; }
+        }
+        .computer-thinking::after {
+            content: "";
+            display: inline-block;
+            animation: thinking 1.5s infinite;
+        }
+        .damage-options {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .damage-button {
+            background-color: #9b59b6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 0 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .damage-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav>
+        <div class="nav-container">
+            <h1 class="logo">ScatteredGames</h1>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="platform.html">Platformer</a></li>
+                <li><a href="space.html">Asteroid</a></li>
+                <li><a href="life.html">Game of Life</a></li>
+                <li><a href="math.html">Math Game</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class = "box">
+    <div class="game-container">
+        <h1 style="text-align: center;">Math Battle Game</h1>
+        
+        <div class="turn-indicator" id="turnIndicator">Your Turn</div>
+        
+        <div class="health-bars">
+            <div>
+                <h3>Player</h3>
+                <div class="health-bar">
+                    <div class="health-fill" id="playerHealth" style="width: 100%;"></div>
+                    <div class="health-text" id="playerHealthText">10/10</div>
+                </div>
+            </div>
+            <div>
+                <h3>Computer</h3>
+                <div class="health-bar">
+                    <div class="health-fill" id="computerHealth" style="width: 100%;"></div>
+                    <div class="health-text" id="computerHealthText">10/10</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-points" id="actionPoints">Action Points: 5/5</div>
+        
+        <div class="battle-area">
+            <div class="player-area">
+                <h3>Your Numbers:</h3>
+                <div class="numbers-container" id="numbersContainer"></div>
+                
+                <div class="action-buttons">
+                    <button id="getNumberBtn" class="action-button">
+                        <span class="button-icon">+</span>
+                        <span class="button-text">Get Number</span>
+                        <span class="button-cost">1 AP</span>
+                    </button>
+                    <button id="addBtn" class="action-button" disabled>
+                        <span class="button-icon">+</span>
+                        <span class="button-text">Add</span>
+                        <span class="button-cost">1 AP</span>
+                    </button>
+                    <button id="subtractBtn" class="action-button" disabled>
+                        <span class="button-icon">−</span>
+                        <span class="button-text">Subtract</span>
+                        <span class="button-cost">1 AP</span>
+                    </button>
+                    <button id="multiplyBtn" class="action-button" disabled>
+                        <span class="button-icon">×</span>
+                        <span class="button-text">Multiply</span>
+                        <span class="button-cost">2 AP</span>
+                    </button>
+                    <button id="divideBtn" class="action-button" disabled>
+                        <span class="button-icon">÷</span>
+                        <span class="button-text">Divide</span>
+                        <span class="button-cost">3 AP</span>
+                    </button>
+                    <button id="endTurnBtn" class="end-turn-button" disabled>End Turn</button>
+                </div>
+            </div>
+            
+            <div class="computer-area">
+                <h3>Computer's Numbers:</h3>
+                <div class="numbers-container" id="computerNumbersContainer"></div>
+            </div>
+        </div>
+        
+        <div id="damageOptions" class="damage-options" style="display: none;">
+            <button id="applyToPc" class="damage-button">Apply to Computer</button>
+            <button id="applyToPlayer" class="damage-button">Apply to Player</button>
+        </div>
+        
+        <div class="game-log" id="gameLog">
+            <div class="log-entry">Game started. You have 5 action points. Get some numbers!</div>
+        </div>
+    </div>
+</div>
+<footer>
+    <p>&copy; 2025 ScatteredGames. All rights reserved.</p>
+</footer>
+
+    <script>
+        // Game state
+const gameState = {
+    playerHealth: 10,
+    computerHealth: 10,
+    actionPoints: 5,
+    maxActionPoints: 5,
+    numbers: [],
+    computerNumbers: [],
+    selectedNumbers: [],
+    selectedNumber: null,
+    playerTurn: true,
+    gameOver: false,
+    computerThinking: false,
+    endOfTurn: false
+};
+
+// DOM elements
+const playerHealthBar = document.getElementById('playerHealth');
+const computerHealthBar = document.getElementById('computerHealth');
+const playerHealthText = document.getElementById('playerHealthText');
+const computerHealthText = document.getElementById('computerHealthText');
+const actionPointsDisplay = document.getElementById('actionPoints');
+const numbersContainer = document.getElementById('numbersContainer');
+const computerNumbersContainer = document.getElementById('computerNumbersContainer');
+const getNumberBtn = document.getElementById('getNumberBtn');
+const addBtn = document.getElementById('addBtn');
+const subtractBtn = document.getElementById('subtractBtn');
+const multiplyBtn = document.getElementById('multiplyBtn');
+const divideBtn = document.getElementById('divideBtn');
+const endTurnBtn = document.getElementById('endTurnBtn');
+const gameLog = document.getElementById('gameLog');
+const turnIndicator = document.getElementById('turnIndicator');
+const damageOptions = document.getElementById('damageOptions');
+const applyToPc = document.getElementById('applyToPc');
+const applyToPlayer = document.getElementById('applyToPlayer');
+
+// Initialize game
+function initGame() {
+    updateHealth();
+    updateActionPoints();
+    
+    // Add event listeners
+    getNumberBtn.addEventListener('click', getRandomNumber);
+    addBtn.addEventListener('click', () => performOperation('add'));
+    subtractBtn.addEventListener('click', () => performOperation('subtract'));
+    multiplyBtn.addEventListener('click', () => performOperation('multiply'));
+    divideBtn.addEventListener('click', () => performOperation('divide'));
+    endTurnBtn.addEventListener('click', endTurn);
+    applyToPc.addEventListener('click', () => applyDamage('computer'));
+    applyToPlayer.addEventListener('click', () => applyDamage('player'));
+}
+
+// Update health displays
+function updateHealth() {
+    // Display health as percentage of starting health (10)
+    // Cap at 100% for the visual bar, but show actual value in text
+    const playerHealthPercentage = Math.min(100, (gameState.playerHealth / 10) * 100);
+    const computerHealthPercentage = Math.min(100, (gameState.computerHealth / 10) * 100);
+    
+    playerHealthBar.style.width = `${playerHealthPercentage}%`;
+    computerHealthBar.style.width = `${computerHealthPercentage}%`;
+    playerHealthText.textContent = `${formatNumber(gameState.playerHealth)}`;
+    computerHealthText.textContent = `${formatNumber(gameState.computerHealth)}`;
+    
+    // Change color based on health
+    if (gameState.playerHealth <= 3) {
+        playerHealthBar.style.backgroundColor = '#e74c3c';
+    } else if (gameState.playerHealth <= 6) {
+        playerHealthBar.style.backgroundColor = '#f39c12';
+    } else {
+        playerHealthBar.style.backgroundColor = '#4CAF50';
+    }
+    
+    if (gameState.computerHealth <= 3) {
+        computerHealthBar.style.backgroundColor = '#e74c3c';
+    } else if (gameState.computerHealth <= 6) {
+        computerHealthBar.style.backgroundColor = '#f39c12';
+    } else {
+        computerHealthBar.style.backgroundColor = '#4CAF50';
+    }
+}
+
+// Update action points display
+function updateActionPoints() {
+    actionPointsDisplay.textContent = `Action Points: ${gameState.actionPoints}/${gameState.maxActionPoints}`;
+    
+    // Disable buttons if not enough action points or not player's turn
+    getNumberBtn.disabled = gameState.actionPoints < 1 || !gameState.playerTurn || gameState.endOfTurn;
+    addBtn.disabled = gameState.actionPoints < 1 || gameState.selectedNumbers.length !== 2 || !gameState.playerTurn || gameState.endOfTurn;
+    subtractBtn.disabled = gameState.actionPoints < 1 || gameState.selectedNumbers.length !== 2 || !gameState.playerTurn || gameState.endOfTurn;
+    multiplyBtn.disabled = gameState.actionPoints < 2 || gameState.selectedNumbers.length !== 2 || !gameState.playerTurn || gameState.endOfTurn;
+    divideBtn.disabled = gameState.actionPoints < 3 || gameState.selectedNumbers.length !== 2 || !gameState.playerTurn || gameState.endOfTurn;
+    
+    // Enable end turn button if player has at least one number
+    endTurnBtn.disabled = gameState.numbers.length === 0 || !gameState.playerTurn || gameState.endOfTurn;
+}
+
+// Add log entry
+function addLogEntry(message, type = '') {
+    const logEntry = document.createElement('div');
+    logEntry.className = 'log-entry';
+    if (type) {
+        logEntry.classList.add(type);
+    }
+    logEntry.textContent = message;
+    gameLog.appendChild(logEntry);
+    gameLog.scrollTop = gameLog.scrollHeight;
+}
+
+// Get random number (1-4)
+function getRandomNumber() {
+    if (gameState.actionPoints >= 1 && gameState.playerTurn) {
+        gameState.actionPoints--;
+        const randomNum = Math.floor(Math.random() * 4) + 1;
+        gameState.numbers.push(randomNum);
+        addLogEntry(`You got a ${randomNum}.`, 'player');
+        renderNumbers();
+        updateActionPoints();
+    }
+}
+
+// Format number for display (handle fractions)
+function formatNumber(num) {
+    if (Number.isInteger(num)) {
+        return num;
+    } else {
+        // Show at most 2 decimal places
+        return num.toFixed(2).replace(/\.?0+$/, '');
+    }
+}
+
+// Render player's numbers in the container
+function renderNumbers() {
+    numbersContainer.innerHTML = '';
+    gameState.numbers.forEach((num, index) => {
+        const numElement = document.createElement('div');
+        numElement.className = 'number';
+        if (num < 0) {
+            numElement.classList.add('negative');
+        }
+        if (gameState.endOfTurn && gameState.selectedNumber === index) {
+            numElement.classList.add('selected');
+        } else if (!gameState.endOfTurn && gameState.selectedNumbers.includes(index)) {
+            numElement.classList.add('selected');
+        }
+        numElement.textContent = formatNumber(num);
+        
+        // In regular turn, select number for operations
+        // In end of turn, select a single number for damage
+        if (gameState.endOfTurn) {
+            numElement.addEventListener('click', () => selectNumberForDamage(index));
+        } else {
+            numElement.addEventListener('click', () => toggleNumberSelection(index));
+        }
+        
+        numbersContainer.appendChild(numElement);
+    });
+}
+
+// Render computer's numbers
+function renderComputerNumbers() {
+    computerNumbersContainer.innerHTML = '';
+    gameState.computerNumbers.forEach(num => {
+        const numElement = document.createElement('div');
+        numElement.className = 'number computer-number';
+        if (num < 0) {
+            numElement.classList.add('negative');
+        }
+        numElement.textContent = formatNumber(num);
+        computerNumbersContainer.appendChild(numElement);
+    });
+}
+
+// Toggle number selection for operations
+function toggleNumberSelection(index) {
+    if (gameState.playerTurn && !gameState.endOfTurn) {
+        const selectedIndex = gameState.selectedNumbers.indexOf(index);
+        if (selectedIndex === -1) {
+            // If we already have 2 selected, remove the first one
+            if (gameState.selectedNumbers.length >= 2) {
+                gameState.selectedNumbers.shift();
+            }
+            gameState.selectedNumbers.push(index);
+        } else {
+            gameState.selectedNumbers.splice(selectedIndex, 1);
+        }
+        renderNumbers();
+        updateActionPoints();
+    }
+}
+
+// Select a single number for damage application
+function selectNumberForDamage(index) {
+    if (gameState.endOfTurn) {
+        gameState.selectedNumber = index;
+        renderNumbers();
+        damageOptions.style.display = 'flex';
+    }
+}
+
+// Perform operation (add, subtract, multiply, divide)
+function performOperation(operation) {
+    if (gameState.selectedNumbers.length !== 2) return;
+    
+    const index1 = gameState.selectedNumbers[0];
+    const index2 = gameState.selectedNumbers[1];
+    const num1 = gameState.numbers[index1];
+    const num2 = gameState.numbers[index2];
+    let result;
+    let cost;
+    
+    switch (operation) {
+        case 'add':
+            result = num1 + num2;
+            cost = 1;
+            addLogEntry(`${formatNumber(num1)} + ${formatNumber(num2)} = ${formatNumber(result)}`, 'player');
+            break;
+        case 'subtract':
+            result = num1 - num2;
+            cost = 1;
+            addLogEntry(`${formatNumber(num1)} - ${formatNumber(num2)} = ${formatNumber(result)}`, 'player');
+            break;
+        case 'multiply':
+            result = num1 * num2;
+            cost = 2;
+            addLogEntry(`${formatNumber(num1)} × ${formatNumber(num2)} = ${formatNumber(result)}`, 'player');
+            break;
+        case 'divide':
+            // Allow division even if it results in a fraction
+            if (num2 === 0) {
+                addLogEntry("Can't divide by zero!", 'player');
+                return;
+            }
+            
+            result = num1 / num2;
+            cost = 3;
+            addLogEntry(`${formatNumber(num1)} ÷ ${formatNumber(num2)} = ${formatNumber(result)}`, 'player');
+            break;
+    }
+    
+    if (gameState.actionPoints >= cost) {
+        gameState.actionPoints -= cost;
+        
+        // Remove the two numbers that were used
+        // Remove the larger index first to avoid index shifting
+        const largerIndex = Math.max(index1, index2);
+        const smallerIndex = Math.min(index1, index2);
+        
+        gameState.numbers.splice(largerIndex, 1);
+        gameState.numbers.splice(smallerIndex, 1);
+        
+        // Add the result
+        gameState.numbers.push(result);
+        
+        // Clear selections
+        gameState.selectedNumbers = [];
+        
+        renderNumbers();
+        updateActionPoints();
+    }
+}
+
+// End player turn
+function endTurn() {
+    if (gameState.numbers.length > 0) {
+        gameState.endOfTurn = true;
+        turnIndicator.textContent = "Select a number to use";
+        addLogEntry("Select a number and choose where to apply it", 'player');
+        
+        // Clear selections used for operations
+        gameState.selectedNumbers = [];
+        renderNumbers();
+        updateActionPoints();
+    }
+}
+
+// Apply damage or healing
+function applyDamage(target) {
+    if (gameState.selectedNumber === null) return;
+    
+    const damageAmount = gameState.numbers[gameState.selectedNumber];
+    
+    if (target === 'player') {
+        gameState.playerHealth = gameState.playerHealth + damageAmount;
+        addLogEntry(`You applied ${formatNumber(damageAmount)} to yourself. Health: ${formatNumber(gameState.playerHealth)}`, 'player');
+    } else {
+        // Instead of subtracting, always add the value (negative numbers will reduce health)
+        gameState.computerHealth = gameState.computerHealth + damageAmount;
+        
+        if (damageAmount < 0) {
+            addLogEntry(`You applied ${formatNumber(Math.abs(damageAmount))} damage to computer. Health: ${formatNumber(gameState.computerHealth)}`, 'player');
+        } else {
+            addLogEntry(`You applied ${formatNumber(damageAmount)} healing to computer. Health: ${formatNumber(gameState.computerHealth)}`, 'player');
+        }
+    }
+    
+    // Remove the used number
+    gameState.numbers.splice(gameState.selectedNumber, 1);
+    gameState.selectedNumber = null;
+    
+    // Reset end of turn state
+    gameState.endOfTurn = false;
+    damageOptions.style.display = 'none';
+    
+    updateHealth();
+    
+    // Check for game over - only win if opponent has EXACTLY 0 health
+    if (gameState.computerHealth === 0) {
+        endGame(true);
+        return;
+    }
+    
+    // Computer's turn
+    gameState.playerTurn = false;
+    turnIndicator.textContent = "Computer's Turn";
+    renderNumbers();
+    updateActionPoints();
+    
+    // Start computer turn with a delay
+    setTimeout(startComputerTurn, 1000);
+}
+
+// Start computer turn with improved decision making
+function startComputerTurn() {
+    gameState.computerThinking = true;
+    gameState.computerNumbers = [];
+    addLogEntry("Computer's turn...", 'computer');
+    
+    // Computer starts by getting 2-3 numbers to have options
+    getInitialComputerNumbers();
+}
+
+// Get initial batch of numbers
+function getInitialComputerNumbers(count = 0) {
+    if (count < 2) {
+        const randomNum = Math.floor(Math.random() * 4) + 1;
+        gameState.computerNumbers.push(randomNum);
+        
+        turnIndicator.textContent = "Computer is thinking...";
+        setTimeout(() => {
+            addLogEntry(`Computer got a ${randomNum}.`, 'computer');
+            renderComputerNumbers();
+            getInitialComputerNumbers(count + 1);
+        }, 800);
+    } else {
+        // After getting initial numbers, plan the strategy
+        setTimeout(planComputerStrategy, 1000);
+    }
+}
+
+// Plan the overall turn strategy
+function planComputerStrategy() {
+    // Assess the game state
+    const computerHealthPercentage = gameState.computerHealth / 10;
+    const playerHealthPercentage = gameState.playerHealth / 10;
+    
+    // Define strategy based on health
+    let strategy;
+    
+    if (computerHealthPercentage <= 0.3) {
+        // Critical health - focus on healing
+        strategy = 'defensive';
+        addLogEntry("Computer looks worried...", 'computer');
+    } else if (playerHealthPercentage <= 0.3 && computerHealthPercentage > 0.5) {
+        // Player is weak and computer is relatively strong - go for the kill
+        strategy = 'aggressive';
+        addLogEntry("Computer eyes you menacingly...", 'computer');
+    } else if (computerHealthPercentage < playerHealthPercentage) {
+        // Computer is losing - mixed approach leaning towards healing
+        strategy = computerHealthPercentage < 0.5 ? 'defensive' : 'balanced';
+    } else {
+        // Computer is winning or tied - balanced approach
+        strategy = 'balanced';
+    }
+    
+    // Execute the chosen strategy
+    executeComputerStrategy(strategy);
+}
+
+// Execute the selected strategy
+function executeComputerStrategy(strategy) {
+    // Decide how many operations to perform based on strategy
+    const maxOperations = Math.floor(Math.random() * 2) + 2; // 2-3 operations
+    continueComputerTurn(strategy, 0, maxOperations);
+}
+
+// Continue computer turn with strategic operations
+function continueComputerTurn(strategy, operationCount, maxOperations) {
+    // Check if we should get another number or perform an operation
+    if (gameState.computerNumbers.length < 2) {
+        getAdditionalComputerNumber(strategy, operationCount, maxOperations);
+    } else if (operationCount < maxOperations) {
+        // Try to perform a strategic operation
+        setTimeout(() => {
+            const success = computerPerformStrategicOperation(strategy);
+            if (success) {
+                setTimeout(() => {
+                    continueComputerTurn(strategy, operationCount + 1, maxOperations);
+                }, 1200);
+            } else {
+                // If operation failed, get another number and try again
+                getAdditionalComputerNumber(strategy, operationCount, maxOperations);
+            }
+        }, 1000);
+    } else {
+        // We've done enough operations, end the turn
+        setTimeout(endComputerTurnStrategically, 1200);
+    }
+}
+
+// Get additional number if needed
+function getAdditionalComputerNumber(strategy, operationCount, maxOperations) {
+    if (gameState.computerNumbers.length >= 5) {
+        // Too many numbers, end turn or try to use some
+        if (gameState.computerNumbers.length >= 2) {
+            setTimeout(() => {
+                computerPerformStrategicOperation(strategy);
+                setTimeout(() => {
+                    continueComputerTurn(strategy, operationCount + 1, maxOperations);
+                }, 1200);
+            }, 800);
+        } else {
+            setTimeout(endComputerTurnStrategically, 1000);
+        }
+        return;
+    }
+    
+    const randomNum = Math.floor(Math.random() * 4) + 1;
+    gameState.computerNumbers.push(randomNum);
+    
+    setTimeout(() => {
+        addLogEntry(`Computer got a ${randomNum}.`, 'computer');
+        renderComputerNumbers();
+        
+        // Continue with the strategy
+        setTimeout(() => {
+            continueComputerTurn(strategy, operationCount, maxOperations);
+        }, 800);
+    }, 800);
+}
+
+// Computer performs strategic operation based on current strategy
+function computerPerformStrategicOperation(strategy) {
+    if (gameState.computerNumbers.length < 2) {
+        return false;
+    }
+    
+    // Map all possible operations between existing numbers
+    const possibleOperations = [];
+    
+    for (let i = 0; i < gameState.computerNumbers.length; i++) {
+        for (let j = 0; j < gameState.computerNumbers.length; j++) {
+            if (i !== j) {
+                const num1 = gameState.computerNumbers[i];
+                const num2 = gameState.computerNumbers[j];
+                
+                // Add
+                possibleOperations.push({
+                    type: 'add',
+                    index1: i,
+                    index2: j,
+                    result: num1 + num2,
+                    score: evaluateOperationScore('add', num1 + num2, strategy)
+                });
+                
+                // Subtract
+                possibleOperations.push({
+                    type: 'subtract',
+                    index1: i,
+                    index2: j,
+                    result: num1 - num2,
+                    score: evaluateOperationScore('subtract', num1 - num2, strategy)
+                });
+                
+                // Multiply
+                possibleOperations.push({
+                    type: 'multiply',
+                    index1: i,
+                    index2: j,
+                    result: num1 * num2,
+                    score: evaluateOperationScore('multiply', num1 * num2, strategy)
+                });
+                
+                // Divide (only if not dividing by zero and result is exact)
+                if (num2 !== 0 && num1 % num2 === 0) {
+                    possibleOperations.push({
+                        type: 'divide',
+                        index1: i,
+                        index2: j,
+                        result: num1 / num2,
+                        score: evaluateOperationScore('divide', num1 / num2, strategy)
+                    });
+                }
+            }
+        }
+    }
+    
+    // If no operations are possible, return false
+    if (possibleOperations.length === 0) {
+        return false;
+    }
+    
+    // Sort by score (higher is better)
+    possibleOperations.sort((a, b) => b.score - a.score);
+    
+    // Add some randomness - sometimes choose second best option
+    const opIndex = Math.random() < 0.7 ? 0 : (possibleOperations.length > 1 ? 1 : 0);
+    const chosenOperation = possibleOperations[opIndex];
+    
+    // Perform the chosen operation
+    const num1 = gameState.computerNumbers[chosenOperation.index1];
+    const num2 = gameState.computerNumbers[chosenOperation.index2];
+    const result = chosenOperation.result;
+    
+    // Remove the two numbers that were used (larger index first to avoid index shifting)
+    const largerIndex = Math.max(chosenOperation.index1, chosenOperation.index2);
+    const smallerIndex = Math.min(chosenOperation.index1, chosenOperation.index2);
+    
+    gameState.computerNumbers.splice(largerIndex, 1);
+    gameState.computerNumbers.splice(smallerIndex, 1);
+    
+    // Add the result
+    gameState.computerNumbers.push(result);
+    
+    addLogEntry(`Computer performed ${chosenOperation.type}: ${formatNumber(num1)} ${getOperationSymbol(chosenOperation.type)} ${formatNumber(num2)} = ${formatNumber(result)}`, 'computer');
+    renderComputerNumbers();
+    
+    return true;
+}
+
+// Evaluate operation score based on strategy
+function evaluateOperationScore(operation, result, strategy) {
+    let score = 0;
+    
+    // Base score for result value
+    if (strategy === 'aggressive') {
+        // Prefer large negative numbers for damage
+        if (result < 0) {
+            score += Math.abs(result) * 3;
+        } else {
+            // Small positive numbers have little value in aggressive mode
+            score += result * 0.5;
+        }
+    } else if (strategy === 'defensive') {
+        // Prefer large positive numbers for healing
+        if (result > 0) {
+            score += result * 3;
+        } else {
+            // Negative numbers have less value in defensive mode
+            score += Math.abs(result) * 0.3;
+        }
+    } else {
+        // Balanced approach - value both positive and negative
+        if (result < 0) {
+            score += Math.abs(result) * 1.5;
+        } else {
+            score += result * 1.5;
+        }
+    }
+    
+    // Bonus for operations that create special numbers
+    if (result === 0) {
+        // Getting exactly 0 is an instant win if applied to opponent
+        score += 100;
+    }
+    
+    // Penalty for creating fractions - they're harder to work with
+    if (!Number.isInteger(result)) {
+        score -= 5;
+    }
+    
+    return score;
+}
+
+// End computer turn with strategic damage application
+function endComputerTurnStrategically() {
+    if (gameState.computerNumbers.length === 0) {
+        // If computer has no numbers, get one
+        const emergencyNum = Math.floor(Math.random() * 3) + 1;
+        gameState.computerNumbers.push(emergencyNum);
+        addLogEntry(`Computer got an emergency ${emergencyNum}.`, 'computer');
+        renderComputerNumbers();
+    }
+    
+    // Find best use of available numbers
+    const playerHealth = gameState.playerHealth;
+    const computerHealth = gameState.computerHealth;
+    
+    let bestAction = { value: 0, index: 0, target: 'player' };
+    let highestImpact = 0;
+    
+    // Look for insta-kill opportunity (0 health)
+    const zeroIndex = gameState.computerNumbers.findIndex(n => playerHealth + n === 0);
+    if (zeroIndex !== -1) {
+        bestAction = { value: gameState.computerNumbers[zeroIndex], index: zeroIndex, target: 'player' };
+    } else {
+        // Look for large negative to damage player
+        gameState.computerNumbers.forEach((value, index) => {
+            if (value < 0) {
+                const damage = Math.abs(value);
+                // Check if this gives more impact than current best
+                if (damage > highestImpact) {
+                    highestImpact = damage;
+                    bestAction = { value, index, target: 'player' };
+                }
+            }
+            
+            // Check if healing computer would be better
+            if (value > 0 && value > highestImpact) {
+                // Only heal if below 8 health or if we have a really good heal
+                if (computerHealth < 8 || value > 5) {
+                    highestImpact = value;
+                    bestAction = { value, index, target: 'computer' };
+                }
+            }
+        });
+    }
+    
+    // Apply the best action
+    setTimeout(() => {
+        const targetName = bestAction.target === 'player' ? 'you' : 'itself';
+        
+        if (bestAction.target === 'computer') {
+            gameState.computerHealth = gameState.computerHealth + bestAction.value;
+            addLogEntry(`Computer healed for ${formatNumber(bestAction.value)}. Computer health: ${formatNumber(gameState.computerHealth)}`, 'computer');
+        } else {
+            // Always add the value to player health (negative will reduce)
+            gameState.playerHealth = gameState.playerHealth + bestAction.value;
+            
+            if (bestAction.value < 0) {
+                addLogEntry(`Computer dealt ${formatNumber(Math.abs(bestAction.value))} damage. Player health: ${formatNumber(gameState.playerHealth)}`, 'computer');
+            } else {
+                addLogEntry(`Computer accidentally healed you for ${formatNumber(bestAction.value)}. Player health: ${formatNumber(gameState.playerHealth)}`, 'computer');
+            }
+        }
+        
+        // Remove the used number
+        gameState.computerNumbers.splice(bestAction.index, 1);
+        renderComputerNumbers();
+        updateHealth();
+        
+        // Check for game over - only win if opponent has EXACTLY 0 health
+        if (gameState.playerHealth === 0) {
+            endGame(false);
+            return;
+        }
+        
+        // Reset for player's turn
+        gameState.computerThinking = false;
+        gameState.playerTurn = true;
+        gameState.actionPoints = gameState.maxActionPoints;
+        turnIndicator.textContent = "Your Turn";
+        
+        addLogEntry("Your turn now. You have 5 action points.", 'player');
+        updateActionPoints();
+    }, 1500);
+}
+
+// Get operation symbol for display
+function getOperationSymbol(operation) {
+    switch (operation) {
+        case 'add': return '+';
+        case 'subtract': return '-';
+        case 'multiply': return '×';
+        case 'divide': return '÷';
+        default: return '';
+    }
+}
+
+// End game
+function endGame(playerWon) {
+    gameState.gameOver = true;
+    
+    const gameOverMessage = document.createElement('div');
+    gameOverMessage.className = 'game-over';
+    gameOverMessage.textContent = playerWon ? 'You Win!' : 'Computer Wins!';
+    
+    const restartButton = document.createElement('button');
+    restartButton.textContent = 'Play Again';
+    restartButton.style.display = 'block';
+    restartButton.style.margin = '20px auto';
+    restartButton.style.padding = '10px 20px';
+    restartButton.style.fontSize = '1.2em';
+    restartButton.addEventListener('click', () => {
+        location.reload();
+    });
+    
+    document.querySelector('.game-container').appendChild(gameOverMessage);
+    document.querySelector('.game-container').appendChild(restartButton);
+    
+    // Disable all buttons
+    getNumberBtn.disabled = true;
+    addBtn.disabled = true;
+    subtractBtn.disabled = true;
+    multiplyBtn.disabled = true;
+    divideBtn.disabled = true;
+    endTurnBtn.disabled = true;
+}
+
+// Start the game
+initGame();
+    </script>
+</body>
+</html>
