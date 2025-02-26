@@ -84,39 +84,7 @@
             padding: 10px;
             border-radius: 5px;
         }
-        #refuel-button {
-            position: absolute;
-            bottom: 180px;
-            left: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: #0ff;
-            border: 1px solid #0ff;
-            padding: 10px 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 5px;
-            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
-            transition: background-color 0.3s, box-shadow 0.3s;
-        }
-        #refuel-button:hover {
-            background-color: rgba(0, 255, 255, 0.2);
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-        }
-        #refuel-button:active {
-            background-color: rgba(0, 255, 255, 0.4);
-        }
-        #station-distance {
-            position: absolute;
-            bottom: 230px;
-            left: 20px;
-            color: #0ff;
-            font-size: 14px;
-            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
-            background: rgba(0, 0, 0, 0.5);
-            padding: 5px;
-            border-radius: 5px;
-        }
+        
     </style>
 </head>
 <body>
@@ -127,12 +95,11 @@
         <div>FUEL: <span id="fuel">100</span>%</div>
         <div id="fuel-bar"><div id="fuel-level"></div></div>
         <div>DISCOVERIES: <span id="discoveries">0</span></div>
+        <div id="station-distance">NEAREST STATION: <span id="station-dist">N/A</span></div>
     </div>
     <div id="celestial-info"></div>
     <div id="discovery-alert"></div>
     <div id="mini-map"></div>
-    <div id="station-distance">NEAREST STATION: <span id="station-dist">N/A</span></div>
-    <button id="refuel-button">REFUEL</button>
     <div id="controls-info">
         <h3>CONTROLS</h3>
         <div>↑: Thrust</div>
@@ -146,7 +113,6 @@
         const ctx = canvas.getContext("2d");
         const miniMapCanvas = document.createElement("canvas");
         const miniMapCtx = miniMapCanvas.getContext("2d");
-        const refuelButton = document.getElementById("refuel-button");
         const stationDistElement = document.getElementById("station-dist");
         
         miniMapCanvas.width = 150;
@@ -155,6 +121,9 @@
         
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+
+        const universeGrid = new Map(); // To store generated universe squares
+        const currentGridCell = { x: 0, y: 0 }; // Track current grid cell
         
         // Game state
         const gameState = {
@@ -186,7 +155,7 @@
             zoom: 1
         };
         
-        const worldSize = 10000;
+        const worldSize = 100000;
         const universe = {
             width: worldSize,
             height: worldSize,
@@ -223,11 +192,6 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         });
-
-        // Add refuel button click event
-        refuelButton.addEventListener("click", () => {
-            tryRefuel();
-        });
         
         function generateStars(count) {
             const stars = [];
@@ -242,15 +206,45 @@
             return stars;
         }
         
-        function generateCelestialObjects() {
-            const objects = [];
+        function checkUniverseBoundaries() {
+            const gridSize = worldSize;
+            const newGridX = Math.floor((camera.x + universe.width/2) / gridSize);
+            const newGridY = Math.floor((camera.y + universe.height/2) / gridSize);
+            
+            if (newGridX !== currentGridCell.x || newGridY !== currentGridCell.y) {
+                currentGridCell.x = newGridX;
+                currentGridCell.y = newGridY;
+                
+                // Generate new universe square if it doesn't exist
+                const gridKey = `${newGridX},${newGridY}`;
+                if (!universeGrid.has(gridKey)) {
+                    generateUniverseSquare(newGridX, newGridY);
+                }
+            }
+        }
+
+        function generateUniverseSquare(gridX, gridY) {
+            const gridKey = `${gridX},${gridY}`;
+            
+            // Create celestial objects for this grid cell
+            const newObjects = generateCelestialObjectsForGrid(gridX, gridY);
+            celestialObjects.push(...newObjects);
+            
+            // Mark this grid cell as generated
+            universeGrid.set(gridKey, true);
+        }
+
+        function generateCelestialObjectsForGrid(gridX, gridY) {
+            const gridObjects = [];
+            const offsetX = gridX * worldSize;
+            const offsetY = gridY * worldSize;
             
             // Create planets
-            for (let i = 0; i < 15; i++) {
-                objects.push({
+            for (let i = 0; i < 2000; i++) { // Reduced number for each grid
+                gridObjects.push({
                     type: "planet",
-                    x: universe.originX + Math.random() * universe.width,
-                    y: universe.originY + Math.random() * universe.height,
+                    x: universe.originX + offsetX + Math.random() * universe.width,
+                    y: universe.originY + offsetY + Math.random() * universe.height,
                     radius: 50 + Math.random() * 100,
                     color: `hsl(${Math.random() * 360}, ${50 + Math.random() * 50}%, ${30 + Math.random() * 30}%)`,
                     name: generatePlanetName(),
@@ -260,25 +254,25 @@
             }
             
             // Create refueling stations
-            for (let i = 0; i < 5; i++) {
-                objects.push({
+            for (let i = 0; i < 50; i++) { // Fewer stations per grid
+                gridObjects.push({
                     type: "station",
-                    x: universe.originX + Math.random() * universe.width,
-                    y: universe.originY + Math.random() * universe.height,
+                    x: universe.originX + offsetX + Math.random() * universe.width,
+                    y: universe.originY + offsetY + Math.random() * universe.height,
                     radius: 25,
                     color: "#0ff",
                     name: `Station ${String.fromCharCode(65 + i)}`,
                     description: "A refueling station. Press F when nearby to refuel your ship.",
-                    discovered: true // Make stations discovered by default
+                    discovered: true
                 });
             }
             
             // Create anomalies
-            for (let i = 0; i < 8; i++) {
-                objects.push({
+            for (let i = 0; i < 5; i++) {
+                gridObjects.push({
                     type: "anomaly",
-                    x: universe.originX + Math.random() * universe.width,
-                    y: universe.originY + Math.random() * universe.height,
+                    x: universe.originX + offsetX + Math.random() * universe.width,
+                    y: universe.originY + offsetY + Math.random() * universe.height,
                     radius: 15 + Math.random() * 30,
                     color: `rgba(${Math.random() * 100 + 155}, ${Math.random() * 100}, ${Math.random() * 255}, 0.8)`,
                     name: "Unknown Anomaly",
@@ -289,7 +283,7 @@
                 });
             }
             
-            return objects;
+            return gridObjects;
         }
         
         function generatePlanetName() {
@@ -310,9 +304,15 @@
         }
         
         const stars = generateStars(500);
-        const celestialObjects = generateCelestialObjects();
+        const celestialObjects = [];
+        // Add this near the end of your initialization code
+        generateUniverseSquare(0, 0);
+        universeGrid.set("0,0", true);
         
         function update() {
+
+            checkUniverseBoundaries();
+
             // Ship control
             if (keys["ArrowLeft"]) ship.angle -= ship.rotationSpeed;
             if (keys["ArrowRight"]) ship.angle += ship.rotationSpeed;
@@ -707,7 +707,7 @@
     
     const mapCenterX = miniMapCanvas.width / 2;
     const mapCenterY = miniMapCanvas.height / 2;
-    const mapScale = miniMapCanvas.width / universe.width * 5; // Show 20% of the universe
+    const mapScale = miniMapCanvas.width / universe.width * 20; // Show 5% of the universe
     
     // Draw ship position (always at center)
     miniMapCtx.fillStyle = "white";
