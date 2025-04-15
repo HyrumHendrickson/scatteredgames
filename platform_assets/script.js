@@ -8,6 +8,8 @@ const config = {
     airControl: 0.5,
     coinCount: 20,
     enemyCount: 10,
+    heartCount: 5,        // Number of hearts to place in the world
+    maxLives: 5,          // Maximum number of lives player can have
     coyoteTime: 100,
     jumpBufferTime: 150,
     worldWidth: 3000,
@@ -44,13 +46,16 @@ const player = {
     lastOnGround: 0,
     jumpBuffered: false,
     jumpBufferTimestamp: 0,
-    facingDirection: 1
+    facingDirection: 1,
+    isInvulnerable: false,  // Invulnerability state after being hit
+    invulnerableTimer: 0    // Timer for invulnerability
 };
 
 // Arrays to store game objects
 const platforms = [];
 const coins = [];
 const enemies = [];
+const hearts = [];   // Array to store heart objects
 
 // Initialize game
 function init() {
@@ -180,6 +185,13 @@ function createGameObjects() {
     createEnemy(1300, 600, -1, 1.5); // High platform patrol
     createEnemy(1850, 500, 1, 2);    // High platform patrol
     createEnemy(1000, 500, -1, 1);   // High platform patrol
+    
+    // Create hearts at strategic locations
+    createHeart(300, 1550);   // Near start
+    createHeart(980, 1200);   // In middle area
+    createHeart(1850, 1550);  // In right area
+    createHeart(2500, 150);   // In secret area
+    createHeart(900, 350);    // In top area
 }
 
 // Create a single platform
@@ -242,6 +254,26 @@ function createSpecialCoin(x, y) {
         height: 25,
         collected: false,
         special: true
+    });
+}
+
+// Create a heart pickup
+function createHeart(x, y) {
+    const heart = document.createElement('div');
+    heart.className = 'heart';
+    heart.style.left = x + 'px';
+    heart.style.top = y + 'px';
+    
+    const gameElement = document.getElementById('game-world');
+    gameElement.appendChild(heart);
+    
+    hearts.push({
+        element: heart,
+        x,
+        y,
+        width: 25,  // Size of heart
+        height: 25,
+        collected: false
     });
 }
 
@@ -337,6 +369,13 @@ function updatePlayerPosition() {
         player.element.style.height = '40px';
         player.element.style.marginTop = '0px';
     }
+    
+    // Visual feedback for invulnerability
+    if (player.isInvulnerable) {
+        player.element.style.opacity = Math.sin(Date.now() / 50) * 0.5 + 0.5; // Flashing effect
+    } else {
+        player.element.style.opacity = 1;
+    }
 }
 
 // Update enemy positions with better boundary checking for the larger world
@@ -359,6 +398,17 @@ function updateEnemies() {
         
         enemy.element.style.left = enemy.x + 'px';
         enemy.element.style.top = enemy.y + 'px';
+    });
+}
+
+// Update hearts animation
+function updateHearts() {
+    const currentTime = Date.now();
+    hearts.forEach(heart => {
+        if (!heart.collected) {
+            // Simple floating animation
+            heart.element.style.transform = `translateY(${Math.sin(currentTime / 500) * 5}px)`;
+        }
     });
 }
 
@@ -425,17 +475,32 @@ function checkCollisions() {
         }
     });
     
-    // Player with enemies
-    enemies.forEach(enemy => {
+    // Player with hearts
+    hearts.forEach(heart => {
         if (
-            player.x < enemy.x + enemy.width &&
-            player.x + player.width > enemy.x &&
-            player.y < enemy.y + enemy.height &&
-            player.y + player.height > enemy.y
+            !heart.collected &&
+            player.x < heart.x + heart.width &&
+            player.x + player.width > heart.x &&
+            player.y < heart.y + heart.height &&
+            player.y + player.height > heart.y
         ) {
-            hitEnemy();
+            collectHeart(heart);
         }
     });
+    
+    // Player with enemies (only if not invulnerable)
+    if (!player.isInvulnerable) {
+        enemies.forEach(enemy => {
+            if (
+                player.x < enemy.x + enemy.width &&
+                player.x + player.width > enemy.x &&
+                player.y < enemy.y + enemy.height &&
+                player.y + player.height > enemy.y
+            ) {
+                hitEnemy();
+            }
+        });
+    }
     
     // Check if player fell off the bottom
     checkWorldBoundaries();
@@ -464,10 +529,81 @@ function collectCoin(coin) {
     document.getElementById('score').textContent = game.score;
 }
 
+// Collect heart
+function collectHeart(heart) {
+    heart.collected = true;
+    heart.element.style.display = 'none';
+    
+    // Create a pickup effect
+    createPickupEffect(heart.x, heart.y, 'heart');
+    
+    // Gain life if below maximum
+    if (game.lives < config.maxLives) {
+        game.lives++;
+        document.getElementById('lives').textContent = game.lives;
+        
+        // Show notification
+        showNotification("+1 Life!");
+    } else {
+        // Bonus points if at max lives
+        game.score += 100;
+        document.getElementById('score').textContent = game.score;
+        
+        // Show notification
+        showNotification("+100 Points!");
+    }
+}
+
+// Create pickup effect
+function createPickupEffect(x, y, type) {
+    const effect = document.createElement('div');
+    effect.className = `effect ${type}-pickup`;
+    effect.style.left = x + 'px';
+    effect.style.top = y + 'px';
+    
+    const gameElement = document.getElementById('game-world');
+    gameElement.appendChild(effect);
+    
+    // Remove effect after animation completes
+    setTimeout(() => {
+        if (effect.parentNode) {
+            effect.parentNode.removeChild(effect);
+        }
+    }, 500);
+}
+
+// Show notification
+function showNotification(message) {
+    // Check if notification element exists
+    let notification = document.getElementById('notification');
+    
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        document.getElementById('game').appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.className = 'show';
+    
+    // Hide notification after delay
+    setTimeout(() => {
+        notification.className = '';
+    }, 2000);
+}
+
 // Hit enemy
 function hitEnemy() {
     loseLife();
-    resetPlayerPosition();
+    
+    // Make player temporarily invulnerable
+    player.isInvulnerable = true;
+    player.invulnerableTimer = Date.now();
+    
+    // Knockback effect
+    player.velocityY = -8;
+    player.velocityX = player.facingDirection * -10;
+    player.isJumping = true;
 }
 
 // Lose a life
@@ -477,6 +613,9 @@ function loseLife() {
     
     if (game.lives <= 0) {
         gameOver();
+    } else {
+        // Show notification
+        showNotification("Ouch!");
     }
 }
 
@@ -555,6 +694,11 @@ function update() {
         player.jumpBuffered = false;
     }
     
+    // Check invulnerability timeout
+    if (player.isInvulnerable && Date.now() - player.invulnerableTimer > 1500) {
+        player.isInvulnerable = false;
+    }
+    
     // Boundary checking for the world edges
     if (player.x < 0) {
         player.x = 0;
@@ -568,6 +712,7 @@ function update() {
     // Update positions
     updatePlayerPosition();
     updateEnemies();
+    updateHearts();
     
     // Check for collisions
     checkCollisions();
