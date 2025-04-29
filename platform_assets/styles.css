@@ -45,7 +45,6 @@ nav ul li a:hover {
 
 /* Game Layout */
 .big-box {
-    font-family: 'Arial', sans-serif;
     background-color: #222;
     display: flex;
     flex-direction: column;
