@@ -6,6 +6,9 @@ const platforms = [];
 const coins = [];
 const enemies = [];
 
+// Make enemies accessible globally
+window.enemies = enemies;
+
 // Create a single platform
 function createPlatform(x, y, width, height) {
     const platform = document.createElement('div');
@@ -87,7 +90,8 @@ function createEnemy(x, y, direction, speed) {
         height: 30,
         direction,
         speed,
-        initialX: x // Store initial position for patrol behavior
+        initialX: x, // Store initial position for patrol behavior
+        defeated: false // Track if enemy has been defeated by the sword
     });
 }
 
@@ -143,7 +147,7 @@ function createMap() {
     createPlatform(2600, 100, 200, 20);
 }
 
-// Create all game objects
+// Create coins and enemies in fixed positions
 function createGameObjects() {
     // Create coins in specific positions
     createCoin(150, 1550);
@@ -191,6 +195,9 @@ function createGameObjects() {
 // Update enemy positions
 function updateEnemies() {
     enemies.forEach(enemy => {
+        // Skip defeated enemies
+        if (enemy.defeated) return;
+        
         enemy.x += enemy.direction * enemy.speed;
         
         // Better boundary checking for limited patrol areas
@@ -250,20 +257,19 @@ function checkCollisions() {
         }
     });
     
-    // Player with hearts (hearts is imported from powerups.js)
-    // Player with hearts (hearts is imported from powerups.js)
-window.hearts.forEach(heart => {
-    if (
-        !heart.collected &&
-        player.x < heart.x + heart.width &&
-        player.x + player.width > heart.x &&
-        player.y < heart.y + heart.height &&
-        player.y + player.height > heart.y
-    ) {
-        // Use window functions to avoid circular dependencies
-        window.collectHeart(heart);
-    }
-});
+    // Player with hearts
+    window.hearts.forEach(heart => {
+        if (
+            !heart.collected &&
+            player.x < heart.x + heart.width &&
+            player.x + player.width > heart.x &&
+            player.y < heart.y + heart.height &&
+            player.y + player.height > heart.y
+        ) {
+            // Use window functions to avoid circular dependencies
+            window.collectHeart(heart);
+        }
+    });
     
     // Player with double jump power-ups
     window.doubleJumps.forEach(doubleJump => {
@@ -293,9 +299,26 @@ window.hearts.forEach(heart => {
         }
     });
     
+    // Player with sword power-ups
+    window.swords.forEach(sword => {
+        if (
+            !sword.collected &&
+            player.x < sword.x + sword.width &&
+            player.x + player.width > sword.x &&
+            player.y < sword.y + sword.height &&
+            player.y + player.height > sword.y
+        ) {
+            // Use window functions to avoid circular dependencies
+            window.collectSword(sword);
+        }
+    });
+    
     // Player with enemies (only if not invulnerable)
     if (!player.isInvulnerable) {
         enemies.forEach(enemy => {
+            // Skip defeated enemies
+            if (enemy.defeated) return;
+            
             if (
                 player.x < enemy.x + enemy.width &&
                 player.x + player.width > enemy.x &&

@@ -29,21 +29,28 @@ const player = {
     isDashing: false,          // Whether player is currently dashing
     dashCooldown: 0,           // Cooldown timer for dash
     dashDuration: 0,           // Duration timer for current dash
-    dashDirection: 1           // Direction of dash
+    dashDirection: 1,          // Direction of dash
+    
+    // Sword ability
+    hasSword: false,           // Whether player has collected the sword power-up
+    isAttacking: false,        // Whether player is currently attacking
+    attackDuration: 0,         // Duration timer for current attack
+    attackCooldown: 0,         // Cooldown timer for attack
+    attackFrame: 0,            // Current frame of attack animation
+    swordElement: null         // Reference to the sword element
 };
 
 // Handle keydown events
 function handleKeyDown(e) {
     if (window.game.isGameOver) return;
-
     
     if (e.key === 'ArrowLeft' || e.key === 'a') {
-        window.player.isMovingLeft = true;
-        window.player.facingDirection = -1;
+        player.isMovingLeft = true;
+        player.facingDirection = -1;
     }
     if (e.key === 'ArrowRight' || e.key === 'd') {
-        window.player.isMovingRight = true;
-        window.player.facingDirection = 1;
+        player.isMovingRight = true;
+        player.facingDirection = 1;
     }
     
     // Jump key pressed
@@ -53,72 +60,47 @@ function handleKeyDown(e) {
         const currentKeyState = true;
         
         // Regular jump - we're on the ground or in coyote time
-        if (!window.player.isJumping && (Date.now() - window.player.lastOnGround < config.coyoteTime)) {
+        if (!player.isJumping && (Date.now() - player.lastOnGround < config.coyoteTime)) {
             jump();
         }
-        // CRITICAL FIX: Double jump - use window.player object directly
-        else if (window.player.canDoubleJump && 
-                 window.player.isJumping && 
-                 !window.player.hasDoubleJumped && 
-                 !window.player.isDashing && 
-                 !window.player.lastJumpKeyState) {
+        // Double jump - only if key was just pressed (not held), player is already jumping,
+        // has the ability, and hasn't used the double jump yet
+        else if (player.canDoubleJump && 
+                 player.isJumping && 
+                 !player.hasDoubleJumped && 
+                 !player.isDashing && 
+                 !player.lastJumpKeyState) {
             doubleJump();
+            console.log("Double jump executed");
         }
         // Otherwise, buffer the jump
-        else if (!window.player.lastJumpKeyState) {
-            window.player.jumpBuffered = true;
-            window.player.jumpBufferTimestamp = Date.now();
+        else if (!player.lastJumpKeyState) {
+            player.jumpBuffered = true;
+            player.jumpBufferTimestamp = Date.now();
         }
         
         // Update last key state
-        window.player.lastJumpKeyState = currentKeyState;
+        player.lastJumpKeyState = currentKeyState;
     }
     
-    // CRITICAL FIX: Dash - use window.player object directly and add support for more keys
+    // Dash with Shift key
     if ((e.key === 'Shift' || e.key === 's') && 
-        window.player.canDash && 
-        !window.player.isDashing && 
-        Date.now() > window.player.dashCooldown) {
+        player.canDash && 
+        !player.isDashing && 
+        Date.now() > player.dashCooldown) {
         dash();
+        console.log("Dash executed");
+    }
+    
+    // Attack with Z or F key
+    if ((e.key === 'z' || e.key === 'f') && 
+        player.hasSword && 
+        !player.isAttacking && 
+        Date.now() > player.attackCooldown) {
+        attack();
+        console.log("Attack executed");
     }
 }
-
-// Player double jump function
-function doubleJump() {
-    // CRITICAL FIX: Use window.player directly
-    window.player.velocityY = -config.jumpForce * 0.8; // Slightly weaker than normal jump
-    window.player.hasDoubleJumped = true;
-    
-    // Create visual effect for double jump
-    createDoubleJumpEffect();
-    
-    // Add a small speed boost in the direction of movement
-    if (window.player.isMovingRight) {
-        window.player.velocityX += 1.5;
-    } else if (window.player.isMovingLeft) {
-        window.player.velocityX -= 1.5;
-    }
-}
-
-// Player dash function
-function dash() {
-    // CRITICAL FIX: Use window.player directly
-    window.player.isDashing = true;
-    window.player.dashDuration = Date.now() + 200; // Dash lasts 200ms
-    window.player.dashDirection = window.player.facingDirection;
-    
-    // Set cooldown for next dash
-    window.player.dashCooldown = Date.now() + 1000; // 1 second cooldown
-    
-    // Create visual effect for dash
-    createDashEffect();
-}
-
-// Make all necessary functions globally available
-window.player = player;  // Ensure player object is globally available
-window.doubleJump = doubleJump;
-window.dash = dash;
-
 
 // Handle keyup events
 function handleKeyUp(e) {
@@ -152,7 +134,96 @@ function jump() {
     }
 }
 
+// Player double jump function
+function doubleJump() {
+    player.velocityY = -config.jumpForce * 0.8; // Slightly weaker than normal jump
+    player.hasDoubleJumped = true;
+    
+    // Create visual effect for double jump
+    createDoubleJumpEffect();
+    
+    // Add a small speed boost in the direction of movement
+    if (player.isMovingRight) {
+        player.velocityX += 1.5;
+    } else if (player.isMovingLeft) {
+        player.velocityX -= 1.5;
+    }
+}
 
+// Player dash function
+function dash() {
+    player.isDashing = true;
+    player.dashDuration = Date.now() + 200; // Dash lasts 200ms
+    player.dashDirection = player.facingDirection;
+    
+    // Set cooldown for next dash
+    player.dashCooldown = Date.now() + 1000; // 1 second cooldown
+    
+    // Create visual effect for dash
+    createDashEffect();
+}
+
+// Player sword attack function
+function attack() {
+    player.isAttacking = true;
+    player.attackDuration = Date.now() + 300; // Attack lasts 300ms
+    player.attackFrame = 0;
+    
+    // Set cooldown for next attack
+    player.attackCooldown = Date.now() + 500; // 0.5 second cooldown
+    
+    // Create visual effect for attack
+    window.createSwordAttackEffect();
+    
+    // Check for enemy hits
+    checkSwordHits();
+}
+
+// Check if sword hits any enemies
+function checkSwordHits() {
+    // Attack range
+    const attackRange = 50;
+    
+    // Calculate attack area based on player position and facing direction
+    const attackX = player.facingDirection === 1 ? player.x + player.width : player.x - attackRange;
+    const attackWidth = attackRange;
+    
+    // Check each enemy for collision with attack area
+    window.enemies.forEach(enemy => {
+        // Only check non-defeated enemies
+        if (!enemy.defeated && 
+            attackX < enemy.x + enemy.width &&
+            attackX + attackWidth > enemy.x &&
+            player.y - 10 < enemy.y + enemy.height &&
+            player.y + player.height + 10 > enemy.y) {
+            
+            // Enemy is hit
+            defeatEnemy(enemy);
+        }
+    });
+}
+
+// Defeat an enemy
+function defeatEnemy(enemy) {
+    enemy.defeated = true;
+    
+    // Add animation class
+    enemy.element.style.animation = 'enemyDeath 0.5s forwards';
+    
+    // Add score
+    window.game.score += 25;
+    document.getElementById('score').textContent = window.game.score;
+    
+    // Show notification
+    window.showNotification("+25 Points!");
+    
+    // Remove enemy after animation
+    setTimeout(() => {
+        if (enemy.element.parentNode) {
+            enemy.element.parentNode.removeChild(enemy.element);
+        }
+    }, 500);
+}
 
 // Create double jump visual effect
 function createDoubleJumpEffect() {
@@ -228,7 +299,13 @@ function updatePlayerPosition() {
         player.element.style.backgroundColor = '#00FFFF';
     } else {
         player.element.style.boxShadow = '0 3px 5px rgba(0, 0, 0, 0.3)';
-        player.element.style.backgroundColor = '#FF5252';
+        
+        // Change color if attacking
+        if (player.isAttacking) {
+            player.element.style.backgroundColor = '#FFA500'; // Orange during attack
+        } else {
+            player.element.style.backgroundColor = '#FF5252'; // Normal red color
+        }
     }
     
     // Visual indicator for double jump availability
@@ -237,32 +314,6 @@ function updatePlayerPosition() {
     } else {
         player.element.style.border = 'none';
     }
-}
-
-// Reset player position
-function resetPlayerPosition() {
-    // Save the ability states before resetting
-    const hadDoubleJump = player.canDoubleJump;
-    const hadDash = player.canDash;
-    
-    player.x = 150;
-    player.y = 1500; // Reset to starting position
-    player.velocityX = 0;
-    player.velocityY = 0;
-    
-    // Reset jumping state variables
-    player.isJumping = false;
-    player.hasDoubleJumped = false;
-    player.lastJumpKeyState = false;
-    
-    // End dashing state but preserve the ability
-    player.isDashing = false;
-    player.dashCooldown = 0; // Reset cooldown on death
-    
-    // Restore abilities
-    player.canDoubleJump = hadDoubleJump;
-    player.canDash = hadDash;
-
 }
 
 // Hit enemy
@@ -278,6 +329,39 @@ function hitEnemy() {
     player.velocityY = -8;
     player.velocityX = player.facingDirection * -10;
     player.isJumping = true;
+}
+
+// Reset player position
+function resetPlayerPosition() {
+    // Save the ability states before resetting
+    const hadDoubleJump = player.canDoubleJump;
+    const hadDash = player.canDash;
+    const hadSword = player.hasSword;
+    
+    player.x = 150;
+    player.y = 1500; // Reset to starting position
+    player.velocityX = 0;
+    player.velocityY = 0;
+    
+    // Reset jumping state variables
+    player.isJumping = false;
+    player.hasDoubleJumped = false;
+    player.lastJumpKeyState = false;
+    
+    // End dashing state but preserve the ability
+    player.isDashing = false;
+    player.dashCooldown = 0; // Reset cooldown on death
+    
+    // End attacking state but preserve the ability
+    player.isAttacking = false;
+    player.attackCooldown = 0; // Reset cooldown on death
+    
+    // Restore abilities
+    player.canDoubleJump = hadDoubleJump;
+    player.canDash = hadDash;
+    player.hasSword = hadSword;
+    
+    console.log("Player reset - Abilities preserved: Double Jump:", player.canDoubleJump, "Dash:", player.canDash, "Sword:", player.hasSword);
 }
 
 // Update player physics
@@ -328,6 +412,17 @@ function updatePlayer() {
         }
     }
     
+    // Update attack state
+    if (player.isAttacking) {
+        if (Date.now() < player.attackDuration) {
+            // Update attack animation frame
+            player.attackFrame = Math.min(6, Math.floor((Date.now() - (player.attackDuration - 300)) / 50));
+        } else {
+            // End attack state
+            player.isAttacking = false;
+        }
+    }
+    
     // Update position
     player.x += player.velocityX;
     player.y += player.velocityY;
@@ -358,10 +453,15 @@ function updatePlayer() {
     updatePlayerPosition();
 }
 
-// Make hitEnemy available globally to avoid circular dependencies
+// Make functions globally available
+window.player = player;
 window.hitEnemy = hitEnemy;
 window.doubleJump = doubleJump;
 window.dash = dash;
+window.attack = attack;
+window.defeatEnemy = defeatEnemy;
+window.checkSwordHits = checkSwordHits;
+window.resetPlayerPosition = resetPlayerPosition;
 
 export { 
     player,
@@ -370,9 +470,12 @@ export {
     jump,
     doubleJump,
     dash,
+    attack,
     updatePlayerPosition,
     resetPlayerPosition,
     hitEnemy,
+    defeatEnemy,
+    checkSwordHits,
     updatePlayer,
     createDoubleJumpEffect,
     createDashEffect

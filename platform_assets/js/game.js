@@ -65,6 +65,8 @@ function init() {
     player.hasDoubleJumped = false;
     player.canDash = false;
     player.isDashing = false;
+    player.hasSword = false;
+    player.isAttacking = false;
     player.lastJumpKeyState = false;
     
     // Update score and lives display
@@ -94,25 +96,42 @@ function createAbilitiesHUD() {
     dashIcon.textContent = '→';
     
     // Cooldown overlay for dash
-    const cooldownOverlay = document.createElement('div');
-    cooldownOverlay.id = 'dash-cooldown';
-    cooldownOverlay.className = 'cooldown-overlay';
-    cooldownOverlay.style.height = '0%';
-    dashIcon.appendChild(cooldownOverlay);
+    const dashCooldown = document.createElement('div');
+    dashCooldown.id = 'dash-cooldown';
+    dashCooldown.className = 'cooldown-overlay';
+    dashCooldown.style.height = '0%';
+    dashIcon.appendChild(dashCooldown);
     
     abilitiesHUD.appendChild(dashIcon);
+    
+    // Sword icon
+    const swordIcon = document.createElement('div');
+    swordIcon.id = 'sword-icon';
+    swordIcon.className = 'ability-icon sword-icon';
+    swordIcon.textContent = '⚔️';
+    
+    // Cooldown overlay for sword
+    const swordCooldown = document.createElement('div');
+    swordCooldown.id = 'sword-cooldown';
+    swordCooldown.className = 'cooldown-overlay';
+    swordCooldown.style.height = '0%';
+    swordIcon.appendChild(swordCooldown);
+    
+    abilitiesHUD.appendChild(swordIcon);
     
     document.getElementById('game').appendChild(abilitiesHUD);
 }
 
 // Update abilities HUD
 function updateAbilitiesHUD() {
-    // CRITICAL FIX: Make sure DOM elements exist
+    // Make sure DOM elements exist
     const doubleJumpIcon = document.getElementById('double-jump-icon');
     const dashIcon = document.getElementById('dash-icon');
     const dashCooldown = document.getElementById('dash-cooldown');
+    const swordIcon = document.getElementById('sword-icon');
+    const swordCooldown = document.getElementById('sword-cooldown');
     
-    if (!doubleJumpIcon || !dashIcon || !dashCooldown) {
+    if (!doubleJumpIcon || !dashIcon || !dashCooldown || !swordIcon || !swordCooldown) {
         console.error("HUD elements not found!");
         return;
     }
@@ -145,10 +164,29 @@ function updateAbilitiesHUD() {
     } else {
         dashIcon.classList.remove('active');
     }
+    
+    // Update sword icon - use window.player
+    if (window.player.hasSword) {
+        swordIcon.classList.add('active');
+        
+        // Show cooldown
+        if (window.player.attackCooldown > Date.now()) {
+            const cooldownPercentage = (window.player.attackCooldown - Date.now()) / 500; // 0.5 second cooldown
+            swordCooldown.style.height = `${Math.min(100, cooldownPercentage * 100)}%`;
+        } else {
+            swordCooldown.style.height = '0%';
+        }
+        
+        // Highlight when attacking
+        if (window.player.isAttacking) {
+            swordIcon.style.boxShadow = '0 0 10px 5px rgba(255, 215, 0, 0.8)';
+        } else {
+            swordIcon.style.boxShadow = 'none';
+        }
+    } else {
+        swordIcon.classList.remove('active');
+    }
 }
-
-// Make sure all necessary functions are globally available
-window.updateAbilitiesHUD = updateAbilitiesHUD;
 
 // Update camera position to follow player
 function updateCamera() {

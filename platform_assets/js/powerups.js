@@ -5,13 +5,14 @@ import { player } from './player.js';
 const hearts = [];
 const doubleJumps = []; // Array for double jump power-ups
 const dashes = [];      // Array for dash power-ups
+const swords = [];      // Array for sword power-ups
 
 // Make them accessible globally
 window.hearts = hearts;
 window.doubleJumps = doubleJumps;
 window.dashes = dashes;
+window.swords = swords;
 
-// Create a heart pickup
 // Create a heart pickup
 function createHeart(x, y) {
     const heart = document.createElement('div');
@@ -72,6 +73,26 @@ function createDash(x, y) {
     });
 }
 
+// Create a sword power-up
+function createSword(x, y) {
+    const sword = document.createElement('div');
+    sword.className = 'sword-powerup';
+    sword.style.left = x + 'px';
+    sword.style.top = y + 'px';
+    
+    const gameElement = document.getElementById('game-world');
+    gameElement.appendChild(sword);
+    
+    swords.push({
+        element: sword,
+        x,
+        y,
+        width: 35,
+        height: 35,
+        collected: false
+    });
+}
+
 // Create all special powerups
 function createAllPowerups() {
     // Create hearts
@@ -86,6 +107,9 @@ function createAllPowerups() {
     
     // Create just one dash power-up (in challenging location)
     createDash(2050, 1200);          // Right area
+    
+    // Create just one sword power-up (in challenging location)
+    createSword(1500, 600);          // Upper middle area
 }
 
 // Update all power-ups animation
@@ -116,6 +140,42 @@ function updatePowerups() {
             dash.element.style.transform = `translateY(${Math.sin(currentTime / 450) * 3}px) scale(${scale})`;
         }
     });
+    
+    // Update swords
+    swords.forEach(sword => {
+        if (!sword.collected) {
+            // Rotate and float animation
+            sword.element.style.transform = `translateY(${Math.sin(currentTime / 600) * 4}px) rotate(${currentTime / 25}deg)`;
+        }
+    });
+    
+    // Update player's sword position if it exists
+    if (window.player.hasSword && window.player.swordElement) {
+        updatePlayerSword();
+    }
+}
+
+// Update player's sword position
+function updatePlayerSword() {
+    const sword = window.player.swordElement;
+    
+    // Only show sword when attacking
+    if (window.player.isAttacking) {
+        sword.style.display = 'block';
+        
+        // Position based on player position and facing direction
+        if (window.player.facingDirection === 1) { // Facing right
+            sword.style.left = (window.player.x + window.player.width - 5) + 'px';
+            sword.style.top = (window.player.y + window.player.height/2 - 4) + 'px';
+            sword.style.transform = `rotate(${window.player.attackFrame * 15}deg)`;
+        } else { // Facing left
+            sword.style.left = (window.player.x - sword.offsetWidth + 5) + 'px';
+            sword.style.top = (window.player.y + window.player.height/2 - 4) + 'px';
+            sword.style.transform = `rotate(${-window.player.attackFrame * 15}deg) scaleX(-1)`;
+        }
+    } else {
+        sword.style.display = 'none';
+    }
 }
 
 // Collect coin
@@ -167,7 +227,7 @@ function collectDoubleJump(doubleJump) {
     // Create a pickup effect
     createPickupEffect(doubleJump.x, doubleJump.y, 'double-jump');
     
-    // Give double jump ability - ensure we're modifying the global player object
+    // Give double jump ability
     window.player.canDoubleJump = true;
     
     // Show notification
@@ -177,9 +237,6 @@ function collectDoubleJump(doubleJump) {
     // Add score bonus
     window.game.score += 30;
     document.getElementById('score').textContent = window.game.score;
-    
-    // FIX: Don't call updateAbilitiesHUD directly from here
-    // It will be updated in the game loop
 }
 
 // Collect dash
@@ -190,7 +247,7 @@ function collectDash(dash) {
     // Create a pickup effect
     createPickupEffect(dash.x, dash.y, 'dash');
     
-    // Give dash ability - ensure we're modifying the global player object
+    // Give dash ability
     window.player.canDash = true;
     window.player.dashCooldown = 0;
     
@@ -201,15 +258,36 @@ function collectDash(dash) {
     // Add score bonus
     window.game.score += 30;
     document.getElementById('score').textContent = window.game.score;
-    
-    // FIX: Don't call updateAbilitiesHUD directly from here
-    // It will be updated in the game loop
 }
 
-// Make all necessary functions globally available
-window.collectDoubleJump = collectDoubleJump;
-window.collectDash = collectDash;
-
+// Collect sword
+function collectSword(sword) {
+    sword.collected = true;
+    sword.element.style.display = 'none';
+    
+    // Create a pickup effect
+    createPickupEffect(sword.x, sword.y, 'sword');
+    
+    // Give sword ability
+    window.player.hasSword = true;
+    
+    // Create the player's sword element if it doesn't exist
+    if (!document.getElementById('player-sword')) {
+        const swordElement = document.createElement('div');
+        swordElement.id = 'player-sword';
+        swordElement.className = 'player-sword';
+        document.getElementById('game-world').appendChild(swordElement);
+        window.player.swordElement = swordElement;
+    }
+    
+    // Show notification
+    showNotification("Sword Acquired!");
+    console.log("Sword collected - player.hasSword =", window.player.hasSword);
+    
+    // Add score bonus
+    window.game.score += 30;
+    document.getElementById('score').textContent = window.game.score;
+}
 
 // Create pickup effect
 function createPickupEffect(x, y, type) {
@@ -227,6 +305,34 @@ function createPickupEffect(x, y, type) {
             effect.parentNode.removeChild(effect);
         }
     }, 500);
+}
+
+// Create sword attack effect
+function createSwordAttackEffect() {
+    const effect = document.createElement('div');
+    effect.className = 'effect sword-attack';
+    
+    const x = window.player.facingDirection === 1 ? 
+        window.player.x + window.player.width : 
+        window.player.x - 60;
+        
+    effect.style.left = x + 'px';
+    effect.style.top = (window.player.y - 10) + 'px';
+    
+    // Flip the effect if facing left
+    if (window.player.facingDirection === -1) {
+        effect.style.transform = 'scaleX(-1)';
+    }
+    
+    const gameElement = document.getElementById('game-world');
+    gameElement.appendChild(effect);
+    
+    // Remove effect after animation completes
+    setTimeout(() => {
+        if (effect.parentNode) {
+            effect.parentNode.removeChild(effect);
+        }
+    }, 300);
 }
 
 // Show notification
@@ -254,22 +360,30 @@ window.collectCoin = collectCoin;
 window.collectHeart = collectHeart;
 window.collectDoubleJump = collectDoubleJump;
 window.collectDash = collectDash;
+window.collectSword = collectSword;
 window.showNotification = showNotification;
 window.createPickupEffect = createPickupEffect;
+window.createSwordAttackEffect = createSwordAttackEffect;
+window.updatePlayerSword = updatePlayerSword;
 
 export {
     hearts,
     doubleJumps,
     dashes,
+    swords,
     createHeart,
     createDoubleJump,
     createDash,
+    createSword,
     createAllPowerups,
     updatePowerups,
     collectCoin,
     collectHeart,
     collectDoubleJump,
     collectDash,
+    collectSword,
     createPickupEffect,
-    showNotification
+    showNotification,
+    createSwordAttackEffect,
+    updatePlayerSword
 };
