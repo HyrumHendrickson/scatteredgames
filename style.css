@@ -164,3 +164,19 @@ footer {
         font-size: 18px;
     }
 }
+
+#screen-warning {
+  display: none;
+  text-align: center;
+  margin-top: 20%;
+  font-size: 1.5rem;
+}
+@media (max-width: 768px) {
+    section, li {
+        display: none;
+    }
+    #screen-warning {
+        display: block;
+    }
+
+}
